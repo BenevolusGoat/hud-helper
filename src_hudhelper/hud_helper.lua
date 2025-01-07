@@ -1236,6 +1236,14 @@ local function InitFunctions()
 		renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, false)
 	end
 
+	local function preRenderHUDs()
+		HudHelper.RenderHUDs(false)
+	end
+
+	local function postRenderHUDs()
+		HudHelper.RenderHUDs(true)
+	end
+
 	local function resetHUDPlayersOnLazBBirthrightFlip(_, _, _, player)
 		local playerType = player:GetPlayerType()
 		if (playerType == PlayerType.PLAYER_LAZARUS_B
@@ -1258,7 +1266,7 @@ local function InitFunctions()
 
 	-- Register new callbacks
 	if REPENTOGON then
-		AddCallback(ModCallbacks.MC_POST_HUD_RENDER, function() HudHelper.RenderHUDs(false) end)
+		AddCallback(ModCallbacks.MC_POST_HUD_RENDER, postRenderHUDs)
 		AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_ACTIVE_ITEM, preRenderActiveHUDs_REPENTOGON)
 		AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM, postRenderActiveHUDs_REPENTOGON)
 		AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_HEARTS, preRenderHeartHUDs_REPENTOGON)
@@ -1266,13 +1274,13 @@ local function InitFunctions()
 	else
 		local function getShaderParams(_, name)
 			if name == emptyShaderName then
-				HudHelper.RenderHUDs(false)
+				postRenderHUDs()
 			end
 		end
 		AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
 	end
 
-	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, function () HudHelper.RenderHUDs(true) end)
+	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, preRenderHUDs)
 	AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType.COLLECTIBLE_FLIP)
 
 	--#endregion
