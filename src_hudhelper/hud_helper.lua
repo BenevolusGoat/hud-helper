@@ -9,6 +9,7 @@ local FORCE_VERSION_UPDATE = false
 
 local CACHED_CALLBACKS
 local CACHED_ELEMENTS
+local CACHED_MOD_CALLBACKS
 
 ---Initializes data that should not be reset when a newer version of the mod is loaded.
 local function InitMod()
@@ -98,6 +99,7 @@ local function InitMod()
 
 	---@type table<string, HUDCallback[]>
 	HudHelper.Callbacks.RegisteredCallbacks = game:GetFrameCount() == 0 and CACHED_CALLBACKS or {}
+	HudHelper.AddedCallbacks = game:GetFrameCount() == 0 and CACHED_MOD_CALLBACKS or HudHelper.AddedCallbacks
 
 	return HudHelper
 end
@@ -1249,6 +1251,11 @@ local function InitFunctions()
 		table.insert(HudHelper.AddedCallbacks[callback], func)
 	end
 
+	local function AddPriorityCallback(callback, priority, func, arg)
+		HudHelper:AddPriorityCallback(callback, priority, func, arg)
+		table.insert(HudHelper.AddedCallbacks[callback], func)
+	end
+
 	-- Register new callbacks
 	if REPENTOGON then
 		AddCallback(ModCallbacks.MC_POST_HUD_RENDER, function() HudHelper.RenderHUDs(false) end)
@@ -1265,8 +1272,7 @@ local function InitFunctions()
 		AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
 	end
 
-	HudHelper:AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE,
-		function() HudHelper.RenderHUDs(true) end)
+	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, function () HudHelper.RenderHUDs(true) end)
 	AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType.COLLECTIBLE_FLIP)
 
 	--#endregion
@@ -1401,6 +1407,7 @@ else
 	if HudHelper then
 		CACHED_CALLBACKS = HudHelper.Callbacks.RegisteredCallbacks
 		CACHED_ELEMENTS = HudHelper.HUD_ELEMENTS
+		CACHED_MOD_CALLBACKS = HudHelper.AddedCallbacks
 	end
 	HudHelper = InitMod()
 	InitFunctions()
