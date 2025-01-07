@@ -1237,11 +1237,11 @@ local function InitFunctions()
 	end
 
 	local function preRenderHUDs()
-		HudHelper.RenderHUDs(false)
+		HudHelper.RenderHUDs(true)
 	end
 
 	local function postRenderHUDs()
-		HudHelper.RenderHUDs(true)
+		HudHelper.RenderHUDs(false)
 	end
 
 	local function resetHUDPlayersOnLazBBirthrightFlip(_, _, _, player)
