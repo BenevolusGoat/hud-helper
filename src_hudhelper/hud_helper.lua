@@ -653,6 +653,21 @@ local function InitFunctions()
 		return healthOffset
 	end
 
+	---@param player EntityPlayer
+	function HudHelper.GetStrawmanHealthHUDOffset(player)
+		local playerPos = Isaac.WorldToRenderPosition(player.Position + player.PositionOffset)
+		local heartOffset = Vector(0, (-30 * player.SpriteScale.Y))
+		local flyingOffset = player:IsFlying() and Vector(0, -4) or Vector.Zero
+		local position = playerPos + heartOffset + flyingOffset
+		local numHearts = (player:GetEffectiveMaxHearts() + player:GetSoulHearts()) / 2
+		local xOffset = 0
+		for i = 1, math.min(6, numHearts) do
+			xOffset = 5 * (i - 1)
+		end
+		position = position - Vector(xOffset, 0)
+		return position
+	end
+
 	---@param playerHUDIndex integer
 	---@param player EntityPlayer
 	---@return Vector
@@ -1183,21 +1198,11 @@ local function InitFunctions()
 		for _, ent in ipairs(Isaac.FindByType(EntityType.ENTITY_PLAYER)) do
 			local player = ent:ToPlayer()
 			if player and player.Parent and not player:IsDead() and player.Variant == 0 then
-				local playerPos = Isaac.WorldToRenderPosition(player.Position + player.PositionOffset)
-				local heartOffset = Vector(0, (-30 * player.SpriteScale.Y))
-				local flyingOffset = player:IsFlying() and Vector(0, -4) or Vector.Zero
-				local position = playerPos + heartOffset + flyingOffset
-				local numHearts = (player:GetEffectiveMaxHearts() + player:GetSoulHearts()) / 2
-				local xOffset = 0
-				for i = 1, math.min(6, numHearts) do
-					xOffset = 5 * (i - 1)
-				end
-				position = position - Vector(xOffset, 0)
-
 				for _, hud in ipairs(HudHelper.HUD_ELEMENTS.Health) do
 					if hud.Condition(player, -1, HudHelper.HUDLayout.STRAWMAN_HEARTS)
 						and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 					then
+						local position = HudHelper.GetStrawmanHealthHUDOffset(player)
 						renderHeartHUDs(player, -1, HudHelper.HUDLayout.STRAWMAN_HEARTS, position, hud)
 					end
 				end
