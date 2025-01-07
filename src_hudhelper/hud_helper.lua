@@ -56,10 +56,10 @@ local function InitMod()
 	---@enum HUDType
 	HudHelper.HUDType = {
 		BASE = 0, --Top left corner of each HUD
-		ACTIVE = 1, --Renders on every active item. This includes Esau's unique positioning of their active and inside secondary slots
-		HEALTH = 2, --Location of the first heart of each HUD. Currently not does support Strawmen players(?)
+		ACTIVE = 1, --Renders on every active item
+		HEALTH = 2, --Location of the first heart of each HUD
 		POCKET = 3, --Renders on the primary pocket item slot of each HUD
-		EXTRA = 4
+		EXTRA = 4 --For any miscellaneous HUD elements per-player. Renders below/above the player's health
 	}
 	HudHelper.HUDTypeToTable = {
 		[0] = HudHelper.HUD_ELEMENTS.Base,
