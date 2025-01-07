@@ -1342,7 +1342,7 @@ local function InitFunctions()
 		YPadding = 0,
 		Condition = function(player, playerHUDIndex)
 			return EID
-				and Mod.Game:GetFrameCount() > 0
+				and game:GetFrameCount() > 0
 				and EID.player
 				and EID.player.FrameCount > 0
 				and playerHUDIndex == 1
@@ -1362,7 +1362,7 @@ local function InitFunctions()
 		YPadding = 0,
 		Condition = function(player, playerHUDIndex)
 			return EID
-				and Mod.Game:GetFrameCount() > 0
+				and game:GetFrameCount() > 0
 				and EID.player
 				and EID.player.FrameCount > 0
 				and playerHUDIndex == 1
