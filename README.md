@@ -3,7 +3,7 @@
 
 ## Features
 
-- Painstaking manual positioning to support all different HUD layouts in Repentance and Repentance+, with some assistance from REPENTOGON, of whihc is not required to use the library
+- Painstaking manual positioning to support all different HUD layouts in Repentance and Repentance+, with some assistance from REPENTOGON, of which is not required to use the library
 - Can render for any corner of the HUD, hearts, actives, pocket items, and extra HUD elements, the last of which can automatically reposition to make room for multiple extra HUD elements
 - Accounts for J&E, existing vanilla HUD elements, all co-op players, and even strawmen if you render health
 - EID support to automatically reposition it with any of your extra HUD elements
