@@ -623,7 +623,7 @@ local function InitFunctions()
 			hud = nameOrHUD
 		else
 			for _, searchHUD in ipairs(HUD_ELEMENTS.Extra) do
-				if searchHUD.Name == nameOrHUD and searchHUD.Condition(player, playerHUDIndex, hudLayout) then
+				if searchHUD.Name == nameOrHUD then
 					hud = searchHUD
 				end
 			end
