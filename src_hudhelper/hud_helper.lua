@@ -9,6 +9,7 @@ local FORCE_VERSION_UPDATE = false
 
 local CACHED_CALLBACKS
 local CACHED_ELEMENTS
+local CACHED_MOD_CALLBACKS
 
 ---Initializes data that should not be reset when a newer version of the mod is loaded.
 local function InitMod()
@@ -98,6 +99,7 @@ local function InitMod()
 
 	---@type table<string, HUDCallback[]>
 	HudHelper.Callbacks.RegisteredCallbacks = game:GetFrameCount() == 0 and CACHED_CALLBACKS or {}
+	HudHelper.AddedCallbacks = game:GetFrameCount() == 0 and CACHED_MOD_CALLBACKS or HudHelper.AddedCallbacks
 
 	return HudHelper
 end
@@ -1244,36 +1246,34 @@ local function InitFunctions()
 		end
 	end
 
+	local function AddCallback(callback, func, arg)
+		HudHelper:AddCallback(callback, func, arg)
+		table.insert(HudHelper.AddedCallbacks[callback], func)
+	end
+
+	local function AddPriorityCallback(callback, priority, func, arg)
+		HudHelper:AddPriorityCallback(callback, priority, func, arg)
+		table.insert(HudHelper.AddedCallbacks[callback], func)
+	end
+
 	-- Register new callbacks
 	if REPENTOGON then
-		HudHelper:AddCallback(ModCallbacks.MC_POST_HUD_RENDER, function() HudHelper.RenderHUDs(false) end)
-		table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_POST_HUD_RENDER], HudHelper.RenderHUDs)
-		HudHelper:AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_ACTIVE_ITEM, preRenderActiveHUDs_REPENTOGON)
-		table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM],
-			preRenderActiveHUDs_REPENTOGON)
-		HudHelper:AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM, postRenderActiveHUDs_REPENTOGON)
-		table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM],
-			postRenderActiveHUDs_REPENTOGON)
-		HudHelper:AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_HEARTS, preRenderHeartHUDs_REPENTOGON)
-		table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_PRE_PLAYERHUD_RENDER_HEARTS], preRenderHeartHUDs_REPENTOGON)
-		HudHelper:AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_HEARTS, postRenderHeartHUDs_REPENTOGON)
-		table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_POST_PLAYERHUD_RENDER_HEARTS],
-			postRenderHeartHUDs_REPENTOGON)
+		AddCallback(ModCallbacks.MC_POST_HUD_RENDER, function() HudHelper.RenderHUDs(false) end)
+		AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_ACTIVE_ITEM, preRenderActiveHUDs_REPENTOGON)
+		AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM, postRenderActiveHUDs_REPENTOGON)
+		AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_HEARTS, preRenderHeartHUDs_REPENTOGON)
+		AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_HEARTS, postRenderHeartHUDs_REPENTOGON)
 	else
 		local function getShaderParams(_, name)
 			if name == emptyShaderName then
 				HudHelper.RenderHUDs(false)
 			end
 		end
-		HudHelper:AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
-		table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_GET_SHADER_PARAMS], getShaderParams)
+		AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
 	end
 
-	HudHelper:AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE,
-		function() HudHelper.RenderHUDs(true) end)
-	HudHelper:AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType
-	.COLLECTIBLE_FLIP)
-	table.insert(HudHelper.AddedCallbacks[ModCallbacks.MC_USE_ITEM], resetHUDPlayersOnLazBBirthrightFlip)
+	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, function () HudHelper.RenderHUDs(true) end)
+	AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType.COLLECTIBLE_FLIP)
 
 	--#endregion
 
@@ -1407,6 +1407,7 @@ else
 	if HudHelper then
 		CACHED_CALLBACKS = HudHelper.Callbacks.RegisteredCallbacks
 		CACHED_ELEMENTS = HudHelper.HUD_ELEMENTS
+		CACHED_MOD_CALLBACKS = HudHelper.AddedCallbacks
 	end
 	HudHelper = InitMod()
 	InitFunctions()
