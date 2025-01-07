@@ -19,6 +19,7 @@ local function InitMod()
 	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector) @Runs for each player, if the condition is true.
 	---@field BypassGhostBaby boolean? @default: `false`. Set to `true` to ignore if your player is a co-op baby and continue rendering.
 	---@field PreRenderCallback boolean? @default: `false`. Set to `true` to specify your callback should on the PRE version of a render callback rather than POST.
+
 	---@class HUDInfo_Active: HUDInfo
 	---@field Condition fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, slot: ActiveSlot): boolean @A function that returns true if the HUD element should be drawn.
 	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: integer, scale: integer, slot: ActiveSlot) @Runs for each player, if the condition is true.
