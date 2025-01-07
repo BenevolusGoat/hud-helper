@@ -622,7 +622,7 @@ local function InitFunctions()
 		if type(nameOrHUD) == "table" then
 			hud = nameOrHUD
 		else
-			for _, searchHUD in ipairs(HUD_ELEMENTS) do
+			for _, searchHUD in ipairs(HUD_ELEMENTS.Extra) do
 				if searchHUD.Name == nameOrHUD and searchHUD.Condition(player, playerHUDIndex, hudLayout) then
 					hud = searchHUD
 				end
