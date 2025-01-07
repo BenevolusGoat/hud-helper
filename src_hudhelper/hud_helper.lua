@@ -602,7 +602,7 @@ local function InitFunctions()
 
 			return activeOffset + additionalOffset + itemSpecificOffset
 		else
-			return HudHelper.GetPocketHUDOffset(playerHUDIndex, player) + itemSpecificOffset
+			return HudHelper.GetPocketHUDOffset(player) + itemSpecificOffset
 		end
 	end
 
@@ -668,10 +668,10 @@ local function InitFunctions()
 		return position
 	end
 
-	---@param playerHUDIndex integer
 	---@param player EntityPlayer
 	---@return Vector
-	function HudHelper.GetPocketHUDOffset(playerHUDIndex, player)
+	function HudHelper.GetPocketHUDOffset(player)
+		local playerHUDIndex = HudHelper.Utils.GetHUDPlayerNumberIndex(player)
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 		playerHUDIndex = math.min(4, playerHUDIndex)
 		local isActive = player:GetCard(0) == 0 and player:GetPill(0) == 0
@@ -1172,7 +1172,7 @@ local function InitFunctions()
 									pos = pos + TWIN_COOP_OFFSET
 								end
 							end
-							pos = pos + HudHelper.GetPocketHUDOffset(playerHUDIndex, player)
+							pos = pos + HudHelper.GetPocketHUDOffset(player)
 							renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
 						elseif hudName == "Health" then
 							---@cast hud HUDInfo_Health
