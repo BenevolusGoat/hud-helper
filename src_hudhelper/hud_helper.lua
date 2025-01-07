@@ -628,7 +628,7 @@ local function InitFunctions()
 				end
 			end
 		end
-
+		if not hud then return Vector.Zero end
 		local yPadding = processFuncOrValue(hud.YPadding, player, playerHUDIndex, hudLayout) + padding.Y
 		if not isAtTop then
 			yPadding = -yPadding
