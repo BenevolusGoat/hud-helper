@@ -1254,14 +1254,17 @@ local function InitFunctions()
 		end
 	end
 
-	local function AddCallback(callback, func, arg)
-		HudHelper:AddCallback(callback, func, arg)
+	local function AddPriorityCallback(callback, priority, func, arg)
+		HudHelper:AddPriorityCallback(callback, priority, func, arg)
+
+		if not HudHelper.AddedCallbacks[callback] then
+			HudHelper.AddedCallbacks[callback] = {}
+		end
 		table.insert(HudHelper.AddedCallbacks[callback], func)
 	end
 
-	local function AddPriorityCallback(callback, priority, func, arg)
-		HudHelper:AddPriorityCallback(callback, priority, func, arg)
-		table.insert(HudHelper.AddedCallbacks[callback], func)
+	local function AddCallback(callback, func, arg)
+		AddPriorityCallback(callback, CallbackPriority.DEFAULT, func, arg)
 	end
 
 	-- Register new callbacks
