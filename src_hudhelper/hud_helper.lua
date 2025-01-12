@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.02 -- do not modify
+local VERSION = 1.03 -- do not modify
 local game = Game()
 
 -- debug
@@ -82,7 +82,7 @@ local function InitMod()
 	---@type table<ModCallbacks, function[]>
 	HudHelper.AddedCallbacks = {
 		[ModCallbacks.MC_USE_ITEM] = {},
-		[ModCallbacks.MC_POST_RENDER] = {}
+		[ModCallbacks.MC_POST_RENDER] = {},
 	} -- for any vanilla callback functions added by this library
 
 	if REPENTOGON then
@@ -91,7 +91,9 @@ local function InitMod()
 		HudHelper.AddedCallbacks[ModCallbacks.MC_PRE_PLAYERHUD_RENDER_ACTIVE_ITEM] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_HUD_RENDER] = {}
+		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_MODS_LOADED] = {}
 	else
+		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_GAME_STARTED] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_GET_SHADER_PARAMS] = {}
 	end
 
@@ -100,6 +102,8 @@ local function InitMod()
 	---@type table<string, HUDCallback[]>
 	HudHelper.Callbacks.RegisteredCallbacks = game:GetFrameCount() == 0 and CACHED_CALLBACKS or {}
 	HudHelper.AddedCallbacks = game:GetFrameCount() == 0 and CACHED_MOD_CALLBACKS or HudHelper.AddedCallbacks
+
+	HudHelper.LoadedPatches = false
 
 	return HudHelper
 end
@@ -204,7 +208,11 @@ local function InitFunctions()
 	end
 
 	---@param player EntityPlayer
-	function HudHelper.Utils.GetEffectiveMaxHealth(player)
+	---@param ignoreMod? boolean
+	function HudHelper.Utils.GetEffectiveMaxHealth(player, ignoreMod)
+		if NoHealthCapModEnabled and not ignoreMod then
+			return NoHealthCapRedMax + NoHealthCapSoulHearts + (NoHealthCapBoneHearts * 2) + (NoHealthCapBrokenHearts * 2)
+		end
 		return player:GetEffectiveMaxHearts() + player:GetSoulHearts() +
 			(player:GetBrokenHearts() * 2)
 	end
@@ -1254,6 +1262,70 @@ local function InitFunctions()
 		end
 	end
 
+	local function postModsLoaded()
+		if HudHelper.LoadedPatches then return end
+		HudHelper.LoadedPatches = true
+
+		--EID support. Adds a custom position modifier to work with other HUD elements registered under HudHelper
+		--If any elements are active, gets rid of EID's own position modifiers as HudHelper already accounts for them
+		--If none are active, resets the modifier
+		HudHelper.RegisterHUDElement({
+			Name = "Reset EID",
+			Priority = HudHelper.Priority.EID,
+			XPadding = 0,
+			YPadding = 0,
+			Condition = function(player, playerHUDIndex)
+				return game:GetFrameCount() > 0
+					and EID.player
+					and EID.player.FrameCount > 0
+					and playerHUDIndex == 1
+					and not HudHelper.LastAppliedHUD.Extra[1]
+					and EID.PositionModifiers["HudHelper"]
+					and EID.PositionModifiers["HudHelper"].Y ~= 0
+			end,
+			OnRender = function()
+				EID:addTextPosModifier("HudHelper", Vector.Zero)
+			end
+		}, HudHelper.HUDType.EXTRA)
+
+		HudHelper.RegisterHUDElement({
+			Name = "EID",
+			Priority = HudHelper.Priority.EID,
+			XPadding = 0,
+			YPadding = 0,
+			Condition = function(player, playerHUDIndex)
+				return game:GetFrameCount() > 0
+					and EID.player
+					and EID.player.FrameCount > 0
+					and playerHUDIndex == 1
+					and HudHelper.LastAppliedHUD.Extra[1]
+					and HudHelper.LastAppliedHUD.Extra[1].Name ~= "Reset EID"
+			end,
+			OnRender = function(_, _, _, position)
+				local posYModifier = 0
+				local offset = -40
+				local vanillaOffsets = {
+					"Tainted HUD",
+					"J&E HUD",
+					"18 Heart HUD",
+					"24 Heart HUD"
+				}
+				for _, offsetName in ipairs(vanillaOffsets) do
+					if EID.PositionModifiers[offsetName] then
+						offset = offset - EID.PositionModifiers[offsetName].Y
+					end
+				end
+
+				posYModifier = position.Y + offset
+
+				EID:addTextPosModifier(
+					"HudHelper",
+					Vector(0, math.max(0, posYModifier))
+				)
+			end
+		}, HudHelper.HUDType.EXTRA)
+	end
+
 	local function AddPriorityCallback(callback, priority, func, arg)
 		HudHelper:AddPriorityCallback(callback, priority, func, arg)
 
@@ -1274,6 +1346,7 @@ local function InitFunctions()
 		AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM, postRenderActiveHUDs_REPENTOGON)
 		AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_HEARTS, preRenderHeartHUDs_REPENTOGON)
 		AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_HEARTS, postRenderHeartHUDs_REPENTOGON)
+		AddCallback(ModCallbacks.MC_POST_MODS_LOADED, postModsLoaded)
 	else
 		local function getShaderParams(_, name)
 			if name == emptyShaderName then
@@ -1281,6 +1354,7 @@ local function InitFunctions()
 			end
 		end
 		AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
+		AddCallback(ModCallbacks.MC_POST_GAME_STARTED, postModsLoaded)
 	end
 
 	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, preRenderHUDs)
@@ -1336,78 +1410,16 @@ local function InitFunctions()
 		Priority = HudHelper.Priority.VANILLA,
 		XPadding = 0,
 		YPadding = function(player)
-			if HudHelper.Utils.GetEffectiveMaxHealth(player) > 36 then
-				return 20
-			else
-				return 10
+			local rows = math.ceil(HudHelper.Utils.GetEffectiveMaxHealth(player) / 12)
+			if REPENTOGON and not NoHealthCapModEnabled then
+				rows = math.min(4, rows) --Hearts literally stop rendering after 4 rows legitimately
 			end
+			return 5 + (rows - 3) * 10
 		end,
 		Condition = function(player)
-			--Maybe do something if they're not P1?
 			return HudHelper.Utils.GetEffectiveMaxHealth(player) > 24
 		end,
 		OnRender = function() end, -- handled by the game
-	}, HudHelper.HUDType.EXTRA)
-
-	--EID support. Adds a custom position modifier to work with other HUD elements registered under HudHelper
-	--If any elements are active, gets rid of EID's own position modifiers as HudHelper already accounts for them
-	--If none are active, resets the modifier
-	HudHelper.RegisterHUDElement({
-		Name = "Reset EID",
-		Priority = HudHelper.Priority.EID,
-		XPadding = 0,
-		YPadding = 0,
-		Condition = function(player, playerHUDIndex)
-			return EID
-				and game:GetFrameCount() > 0
-				and EID.player
-				and EID.player.FrameCount > 0
-				and playerHUDIndex == 1
-				and not HudHelper.LastAppliedHUD.Extra[1]
-				and EID.PositionModifiers["HudHelper"]
-				and EID.PositionModifiers["HudHelper"].Y ~= 0
-		end,
-		OnRender = function()
-			EID:addTextPosModifier("HudHelper", Vector.Zero)
-		end
-	}, HudHelper.HUDType.EXTRA)
-
-	HudHelper.RegisterHUDElement({
-		Name = "EID",
-		Priority = HudHelper.Priority.EID,
-		XPadding = 0,
-		YPadding = 0,
-		Condition = function(player, playerHUDIndex)
-			return EID
-				and game:GetFrameCount() > 0
-				and EID.player
-				and EID.player.FrameCount > 0
-				and playerHUDIndex == 1
-				and HudHelper.LastAppliedHUD.Extra[1]
-				and HudHelper.LastAppliedHUD.Extra[1].Name ~= "Reset EID"
-		end,
-		OnRender = function(_, _, _, position)
-			local posYModifier = 0
-			local offset = -40
-			local vanillaOffsets = {
-				"Tainted HUD",
-				"J&E HUD",
-				"18 Heart HUD",
-				"24 Heart HUD"
-			}
-			for _, offsetName in ipairs(vanillaOffsets) do
-				if EID.PositionModifiers[offsetName] then
-					offset = offset - EID.PositionModifiers[offsetName].Y
-				end
-			end
-
-			posYModifier = position.Y + offset
-
-			EID:addTextPosModifier(
-				"HudHelper",
-				Vector(0, math.max(0, posYModifier))
-			)
-		end
 	}, HudHelper.HUDType.EXTRA)
 end
 
