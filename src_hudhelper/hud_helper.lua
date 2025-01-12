@@ -1337,9 +1337,9 @@ local function InitFunctions()
 		XPadding = 0,
 		YPadding = function(player)
 			if HudHelper.Utils.GetEffectiveMaxHealth(player) > 36 then
-				return 20
+				return 15
 			else
-				return 10
+				return 5
 			end
 		end,
 		Condition = function(player)
