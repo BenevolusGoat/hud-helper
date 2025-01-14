@@ -1266,64 +1266,66 @@ local function InitFunctions()
 		if HudHelper.LoadedPatches then return end
 		HudHelper.LoadedPatches = true
 
-		--EID support. Adds a custom position modifier to work with other HUD elements registered under HudHelper
-		--If any elements are active, gets rid of EID's own position modifiers as HudHelper already accounts for them
-		--If none are active, resets the modifier
-		HudHelper.RegisterHUDElement({
-			Name = "Reset EID",
-			Priority = HudHelper.Priority.EID,
-			XPadding = 0,
-			YPadding = 0,
-			Condition = function(player, playerHUDIndex)
-				return game:GetFrameCount() > 0
-					and EID.player
-					and EID.player.FrameCount > 0
-					and playerHUDIndex == 1
-					and not HudHelper.LastAppliedHUD.Extra[1]
-					and EID.PositionModifiers["HudHelper"]
-					and EID.PositionModifiers["HudHelper"].Y ~= 0
-			end,
-			OnRender = function()
-				EID:addTextPosModifier("HudHelper", Vector.Zero)
-			end
-		}, HudHelper.HUDType.EXTRA)
-
-		HudHelper.RegisterHUDElement({
-			Name = "EID",
-			Priority = HudHelper.Priority.EID,
-			XPadding = 0,
-			YPadding = 0,
-			Condition = function(player, playerHUDIndex)
-				return game:GetFrameCount() > 0
-					and EID.player
-					and EID.player.FrameCount > 0
-					and playerHUDIndex == 1
-					and HudHelper.LastAppliedHUD.Extra[1]
-					and HudHelper.LastAppliedHUD.Extra[1].Name ~= "Reset EID"
-			end,
-			OnRender = function(_, _, _, position)
-				local posYModifier = 0
-				local offset = -40
-				local vanillaOffsets = {
-					"Tainted HUD",
-					"J&E HUD",
-					"18 Heart HUD",
-					"24 Heart HUD"
-				}
-				for _, offsetName in ipairs(vanillaOffsets) do
-					if EID.PositionModifiers[offsetName] then
-						offset = offset - EID.PositionModifiers[offsetName].Y
-					end
+		if EID then
+			--EID support. Adds a custom position modifier to work with other HUD elements registered under HudHelper
+			--If any elements are active, gets rid of EID's own position modifiers as HudHelper already accounts for them
+			--If none are active, resets the modifier
+			HudHelper.RegisterHUDElement({
+				Name = "Reset EID",
+				Priority = HudHelper.Priority.EID,
+				XPadding = 0,
+				YPadding = 0,
+				Condition = function(player, playerHUDIndex)
+					return game:GetFrameCount() > 0
+						and EID.player
+						and EID.player.FrameCount > 0
+						and playerHUDIndex == 1
+						and not HudHelper.LastAppliedHUD.Extra[1]
+						and EID.PositionModifiers["HudHelper"]
+						and EID.PositionModifiers["HudHelper"].Y ~= 0
+				end,
+				OnRender = function()
+					EID:addTextPosModifier("HudHelper", Vector.Zero)
 				end
+			}, HudHelper.HUDType.EXTRA)
 
-				posYModifier = position.Y + offset
+			HudHelper.RegisterHUDElement({
+				Name = "EID",
+				Priority = HudHelper.Priority.EID,
+				XPadding = 0,
+				YPadding = 0,
+				Condition = function(player, playerHUDIndex)
+					return game:GetFrameCount() > 0
+						and EID.player
+						and EID.player.FrameCount > 0
+						and playerHUDIndex == 1
+						and HudHelper.LastAppliedHUD.Extra[1]
+						and HudHelper.LastAppliedHUD.Extra[1].Name ~= "Reset EID"
+				end,
+				OnRender = function(_, _, _, position)
+					local posYModifier = 0
+					local offset = -40
+					local vanillaOffsets = {
+						"Tainted HUD",
+						"J&E HUD",
+						"18 Heart HUD",
+						"24 Heart HUD"
+					}
+					for _, offsetName in ipairs(vanillaOffsets) do
+						if EID.PositionModifiers[offsetName] then
+							offset = offset - EID.PositionModifiers[offsetName].Y
+						end
+					end
 
-				EID:addTextPosModifier(
-					"HudHelper",
-					Vector(0, math.max(0, posYModifier))
-				)
-			end
-		}, HudHelper.HUDType.EXTRA)
+					posYModifier = position.Y + offset
+
+					EID:addTextPosModifier(
+						"HudHelper",
+						Vector(0, math.max(0, posYModifier))
+					)
+				end
+			}, HudHelper.HUDType.EXTRA)
+		end
 	end
 
 	local function AddPriorityCallback(callback, priority, func, arg)
