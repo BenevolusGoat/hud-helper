@@ -463,18 +463,18 @@ local function InitFunctions()
 			Vector((hudOffsetOption * 20), (hudOffsetOption * 12)),
 			Vector((-hudOffsetOption * 24) + width, (hudOffsetOption * 12)),
 			Vector((hudOffsetOption * 22), (-hudOffsetOption * 16) + height),
-			Vector((-hudOffsetOption * 16) + width, (-hudOffsetOption * 16) + height)
+			Vector((-hudOffsetOption * 16) + width, (-hudOffsetOption * 6) + height)
 		}
 		local REP_HUD_OFFSET = {
 			Vector.Zero,
 			Vector(-159, 0),
 			Vector(10, -29),
-			Vector(-167, -29)
+			Vector(-167, -39)
 		}
 		local REP_PLUS_OFFSET = {
 			Vector(0, 6),
 			Vector(-175, 6),
-			Vector(10, -39),
+			Vector(10, -29),
 			Vector(-183, -39)
 		}
 
@@ -738,9 +738,28 @@ local function InitFunctions()
 		local playerHUDIndex = HudHelper.Utils.GetHUDPlayerNumberIndex(player)
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 		playerHUDIndex = math.min(4, playerHUDIndex)
-		if hudLayout == HudHelper.HUDLayout.P1 then
-			return slot == 0 and Vector(28, 26) or Vector(4, 2)
+		local pos = Vector.Zero
+
+		if hudLayout == HudHelper.HUDLayout.P1 or (hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN and not REPENTANCE_PLUS) then
+			pos = slot == 0 and Vector(28, 26) or Vector(4, 2)
+		elseif hudLayout == HudHelper.HUDLayout.COOP then
+			if REPENTANCE_PLUS then
+				pos = slot == 0 and Vector(46.5, 37.5) or Vector(62.5, 37.5)
+			else
+				pos = slot == 0 and Vector(14, 36.5) or Vector(24, 36.5)
+			end
+		elseif hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN and REPENTANCE_PLUS then
+			pos = slot == 0 and Vector(46.5, 37.5) or Vector(62.5, 37.5)
+		elseif hudLayout == HudHelper.HUDLayout.TWIN_COOP then
+			pos = slot == 0 and Vector(34.5, 35.5) or Vector(50.5, 35.5)
+		elseif hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN then
+			if REPENTANCE_PLUS then
+				pos = slot == 0 and Vector(133.5, 35.5) or Vector(117.5, 35.5)
+			else
+				pos = slot == 0 and Vector(151, 5) or Vector(123, 5)
+			end
 		end
+		return pos
 	end
 
 	---@param HUDSprite Sprite
@@ -1124,7 +1143,7 @@ local function InitFunctions()
 	---@param hud HUDInfo_Trinket
 	local function renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
 		local cornerHUD = math.min(4, playerHUDIndex)
-		if hudLayout == HudHelper.HUDLayout.P1 then
+		if hudLayout == HudHelper.HUDLayout.P1 or (hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN and not REPENTANCE_PLUS) then
 			cornerHUD = 3
 		end
 		local scale = 1
@@ -1132,6 +1151,11 @@ local function InitFunctions()
 			pos = HudHelper.GetHUDPosition(cornerHUD) + HudHelper.GetTrinketHUDOffset(player, slot)
 			if i == 2 then
 				pos = pos + TWIN_COOP_OFFSET
+			end
+			if hudLayout == HudHelper.HUDLayout.COOP
+				or (REPENTANCE_PLUS and hudLayout ~= HudHelper.HUDLayout.P1)
+			then
+				scale = 0.5
 			end
 			if not hud.Condition(player, playerHUDIndex, hudLayout, slot) then goto continue end
 			hud.OnRender(player, playerHUDIndex, hudLayout, pos, scale, slot)
