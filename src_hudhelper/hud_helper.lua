@@ -1503,7 +1503,7 @@ local function InitFunctions()
 end
 
 if HudHelper then
-	if HudHelper.Version > VERSION then
+	if HudHelper.Version > VERSION and not FORCE_VERSION_UPDATE then
 		return
 	end
 
