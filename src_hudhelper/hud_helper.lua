@@ -529,7 +529,7 @@ local function InitFunctions()
 		--Keys or Bombs only
 		if specificResource then
 			if specificResource == "Bombs" then
-				return Vector(0, repPlusOffset + (offset > 0 and -1 or 0))
+				return Vector(0, repPlusOffset + twinOffset + (offset > 0 and -1 or 0))
 			elseif specificResource == "Keys" then
 				local keysOffset = p1TwinOffset + poopAndBombsOffset
 				if poopAndBombsOffset == 0 and bethOffset > 0 then
