@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.03 -- do not modify
+local VERSION = 1.04 -- do not modify
 local game = Game()
 
 -- debug
@@ -23,21 +23,35 @@ local function InitMod()
 
 	---@class HUDInfo_Active: HUDInfo
 	---@field Condition fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, slot: ActiveSlot): boolean @A function that returns true if the HUD element should be drawn.
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: integer, scale: integer, slot: ActiveSlot) @Runs for each player, if the condition is true.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, slot: ActiveSlot) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_Health: HUDInfo
 	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, maxColumns: integer) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_PocketItem: HUDInfo
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: integer, scale: integer) @Runs for each player, if the condition is true.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_Trinket: HUDInfo
 	---@field Condition fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, slot: integer): boolean @A function that returns true if the HUD element should be drawn.
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, scale: integer, slot: integer) @Runs for each player, if the condition is true.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, scale: number, slot: integer) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_Extra: HUDInfo
 	---@field YPadding integer | fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout): integer @The height of the HUD element. This is used to calculate the padding between HUD elements.
 	---@field XPadding integer | table<integer, integer> @The padding between the HUD element and vanilla ui, by player index.
+
+	---@class HUDInfo_ActiveItem: HUDInfo
+	---@field Name nil
+	---@field Priority nil
+	---@field Condition nil
+	---@field ItemID CollectibleType
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, itemID: CollectibleType) @Runs for each player, if the condition is true.
+
+	---@class HUDInfo_TrinketItem: HUDInfo
+	---@field Name nil
+	---@field Priority nil
+	---@field Condition nil
+	---@field ItemID TrinketType
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, scale: number, alpha: number, trinketID: TrinketType) @Runs for each player, if the condition is true.
 
 	---@class HUDCallback
 	---@field Priority integer
@@ -47,23 +61,6 @@ local function InitMod()
 	local HudHelper = RegisterMod(("[%s] HUD Helper"):format(Mod.Name), 1)
 	HudHelper.Version = VERSION
 
-	HudHelper.HUD_ELEMENTS = {
-		Base = {}, ---@type HUDInfo[]
-		Actives = {}, ---@type HUDInfo_Active[]
-		Health = {}, ---@type HUDInfo_Health[]
-		PocketItems = {}, ---@type HUDInfo_PocketItem[]
-		Trinkets = {}, ---@type HUDInfo_Trinket[]
-		Extra = {}, ---@type HUDInfo_Extra[]
-	}
-
-	if CACHED_ELEMENTS then
-		for tableName, elements in pairs(CACHED_ELEMENTS) do
-			HudHelper.HUD_ELEMENTS[tableName] = elements
-		end
-	end
-	HudHelper.ItemSpecificOffset = {
-		[CollectibleType.COLLECTIBLE_JAR_OF_FLIES] = Vector(4, 2),
-	}
 	---@enum HUDType
 	HudHelper.HUDType = {
 		BASE = 0, --Top left corner of each HUD
@@ -71,17 +68,32 @@ local function InitMod()
 		HEALTH = 2, --Location of the first heart of each HUD
 		POCKET = 3, --Renders on the primary pocket item slot of each HUD
 		TRINKET = 4, --Renders on every trinket
-		EXTRA = 5 --For any miscellaneous HUD elements per-player. Renders below/above the player's health
+		EXTRA = 5, --For any miscellaneous HUD elements per-player. Renders below/above the player's health
+		ACTIVE_ITEM = 6, --Like ACTIVE, but for specific collectible IDs instead of slots
+		TRINKET_ITEM = 7, --Like TRINKET, but for specific trinket IDs instead of slots
+		NUM_TYPES = 8
+	}
 
+	HudHelper.HUD_ELEMENTS = {
+		[HudHelper.HUDType.BASE] = {}, ---@type HUDInfo[]
+		[HudHelper.HUDType.ACTIVE] = {}, ---@type HUDInfo_Active[]
+		[HudHelper.HUDType.HEALTH] = {}, ---@type HUDInfo_Health[]
+		[HudHelper.HUDType.POCKET] = {}, ---@type HUDInfo_PocketItem[]
+		[HudHelper.HUDType.TRINKET] = {}, ---@type HUDInfo_Trinket[]
+		[HudHelper.HUDType.EXTRA] = {}, ---@type HUDInfo_Extra[]
+		[HudHelper.HUDType.ACTIVE_ITEM] = {}, ---@type {[CollectibleType]: HUDInfo_ActiveItem}
+		[HudHelper.HUDType.TRINKET_ITEM] = {} ---@type{[TrinketType]: HUDInfo_TrinketItem}
 	}
-	HudHelper.HUDTypeToTable = {
-		[0] = HudHelper.HUD_ELEMENTS.Base,
-		[1] = HudHelper.HUD_ELEMENTS.Actives,
-		[2] = HudHelper.HUD_ELEMENTS.Health,
-		[3] = HudHelper.HUD_ELEMENTS.PocketItems,
-		[4] = HudHelper.HUD_ELEMENTS.Trinkets,
-		[5] = HudHelper.HUD_ELEMENTS.Extra,
+
+	if CACHED_ELEMENTS then
+		for hudType, elements in pairs(CACHED_ELEMENTS) do
+			HudHelper.HUD_ELEMENTS[hudType] = elements
+		end
+	end
+	HudHelper.ItemSpecificOffset = {
+		[CollectibleType.COLLECTIBLE_JAR_OF_FLIES] = Vector(4, 2),
 	}
+
 	---@enum HUDLayout
 	HudHelper.HUDLayout = {
 		P1 = 1,
@@ -90,6 +102,18 @@ local function InitMod()
 		COOP = 4,
 		STRAWMAN_HEARTS = 5,
 		TWIN_COOP = 6 --Rep+ exclusive
+	}
+
+	---@enum HUDResourceType
+	HudHelper.ResourceType = {
+		COINS = 1,
+		BOMBS = 2,
+		KEYS = 3,
+		DIFFICULTY_ICON = 5,
+		ACHIEVEMENT_ICON = 6,
+		DESTINATION_ICON = 7,
+		MISC_ICON = 8,
+		STAT = 9
 	}
 
 	---@type table<ModCallbacks, function[]>
@@ -365,15 +389,13 @@ local function InitFunctions()
 	local tempest = Font()
 	tempest:Load("font/pftempestasevencondensed.fnt")
 
-	--Literally just rendering font, but with the screenshake offset, because the game is funny like that
+	--Moved out of util but remains for backwards compat
 	---@param text string
 	---@param pos Vector
 	---@param kColor? KColor @Default: KColor.White
 	---@param font? Font @Default: Tempest
 	function HudHelper.Utils.RenderFont(text, pos, kColor, font)
-		pos = pos + game.ScreenShakeOffset
-		font = font or tempest
-		font:DrawString(text, pos.X, pos.Y, kColor or KColor.White)
+		HudHelper.RenderFont(text, pos, kColor, font)
 	end
 
 	local getBookOffset = HudHelper.Utils.GetBookOffset
@@ -648,7 +670,7 @@ local function InitFunctions()
 		if type(nameOrHUD) == "table" then
 			hud = nameOrHUD
 		else
-			for _, searchHUD in ipairs(HUD_ELEMENTS.Extra) do
+			for _, searchHUD in ipairs(HUD_ELEMENTS[HudHelper.HUDType.EXTRA]) do
 				if searchHUD.Name == nameOrHUD then
 					hud = searchHUD
 				end
@@ -763,6 +785,10 @@ local function InitFunctions()
 		return pos
 	end
 
+	--#endregion
+
+	--#region Misc helper functions
+
 	---@param HUDSprite Sprite
 	---@param charge number
 	---@param maxCharge number
@@ -806,20 +832,39 @@ local function InitFunctions()
 		end
 	end
 
+	--Literally just rendering font, but with the screenshake offset, because the game is funny like that
+	---@param text string
+	---@param pos Vector
+	---@param kColor? KColor @Default: KColor.White
+	---@param font? Font @Default: Tempest
+	function HudHelper.RenderFont(text, pos, kColor, font)
+		pos = pos + game.ScreenShakeOffset
+		font = font or tempest
+		font:DrawString(text, pos.X, pos.Y, kColor or KColor.White)
+	end
+
+	---@param resourceType HUDResourceType
+	function HudHelper.RenderResource(resourceType)
+
+	end
+
 	--#endregion
 
 	--#region HUD Element Functions
 
-	---@param params HUDInfo | HUDInfo_Active | HUDInfo_Health | HUDInfo_PocketItem | HUDInfo_Extra
+	---@param params HUDInfo | HUDInfo_Active | HUDInfo_Health | HUDInfo_PocketItem | HUDInfo_Trinket | HUDInfo_Extra | HUDInfo_ActiveItem | HUDInfo_TrinketItem
 	---@param hudType? HUDType
 	function HudHelper.RegisterHUDElement(params, hudType)
-		local hudElements = HudHelper.HUDTypeToTable[hudType]
-		if not hudElements then hudElements = HudHelper.HUD_ELEMENTS.Base end
+		local hudElements = HudHelper.HUD_ELEMENTS[hudType]
+		if not hudElements then hudElements = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.BASE] end
+		local useItemID = hudType == HudHelper.HUDType.ACTIVE_ITEM or hudType == HudHelper.HUDType.TRINKET_ITEM
 
-		local targetIndex = #hudElements + 1
-		for i, hud in ipairs(hudElements) do
-			if hud.Name == params.Name then
-				targetIndex = i
+		local targetIndex = useItemID and params.ItemID or #hudElements + 1
+		if not useItemID then
+			for i, hud in ipairs(hudElements) do
+				if hud.Name == params.Name then
+					targetIndex = i
+				end
 			end
 		end
 		local xPadding = checkValueType("XPadding", params.XPadding, "number", "table", "nil")
@@ -836,9 +881,9 @@ local function InitFunctions()
 		end
 
 		hudElements[targetIndex] = {
-			Name = checkValueType("Name", params.Name, "string"),
-			Priority = checkValueType("Priority", params.Priority, "number"),
-			Condition = checkValueType("Condition", params.Condition, "function"),
+			Name = checkValueType("Name", params.Name, "string", useItemID and "nil" or nil),
+			Priority = checkValueType("Priority", params.Priority, "number", useItemID and "nil" or nil),
+			Condition = checkValueType("Condition", params.Condition, "function", useItemID and "nil" or nil),
 			OnRender = checkValueType("OnRender", params.OnRender, "function"),
 			XPadding = xPadding,
 			YPadding = checkValueType("YPadding", params.YPadding, "number", "function", "nil"),
@@ -846,16 +891,18 @@ local function InitFunctions()
 			PreRenderCallback = checkValueType("PreRenderCallback", params.PreRenderCallback, "boolean", "nil")
 		}
 
-		table.sort(hudElements, function(a, b)
-			return a.Priority < b.Priority
-		end)
+		if not useItemID then
+			table.sort(hudElements, function(a, b)
+				return a.Priority < b.Priority
+			end)
+		end
 	end
 
 	--- Removes all HUD elements with the given name.
 	---@param name string @The string you used when registering your HUD element.
 	---@param hudType HUDType
 	function HudHelper.UnregisterHUDElement(name, hudType)
-		local hudElements = HudHelper.HUDTypeToTable[hudType]
+		local hudElements = HudHelper.HUD_ELEMENTS[hudType]
 		if not hudElements then return end
 
 		for i = #hudElements, 1, -1 do
@@ -871,12 +918,14 @@ local function InitFunctions()
 
 	---HUDInfo object of last HUD element that was rendered, indexed by player number
 	HudHelper.LastAppliedHUD = {
-		Base = {}, ---@type table<integer, HUDInfo>
-		Actives = {}, ---@type table<integer, HUDInfo_Active>
-		Health = {}, ---@type table<integer, HUDInfo_Health>
-		PocketItems = {}, ---@type table<integer, HUDInfo_PocketItem>
-		Trinkets = {}, ---@type table<integer, HUDInfo_Trinket>
-		Extra = {}, ---@type table<integer, HUDInfo_Extra>
+		[HudHelper.HUDType.BASE] = {}, ---@type table<integer, HUDInfo>
+		[HudHelper.HUDType.ACTIVE] = {}, ---@type table<integer, HUDInfo_Active>
+		[HudHelper.HUDType.HEALTH] = {}, ---@type table<integer, HUDInfo_Health>
+		[HudHelper.HUDType.POCKET] = {}, ---@type table<integer, HUDInfo_PocketItem>
+		[HudHelper.HUDType.TRINKET] = {}, ---@type table<integer, HUDInfo_Trinket>
+		[HudHelper.HUDType.EXTRA] = {}, ---@type table<integer, HUDInfo_Extra>
+		[HudHelper.HUDType.ACTIVE_ITEM] = {}, ---@type table<integer, HUDInfo_ActiveItem>
+		[HudHelper.HUDType.TRINKET_ITEM] = {} ---@type table<integer, HUDInfo_TrinketItem>
 	}
 
 	local numPlayers = 0
@@ -932,6 +981,56 @@ local function InitFunctions()
 		return players
 	end
 
+	---For other mods to use
+	---@param hudType HUDType
+	---@param isPreCallback boolean
+	---@param player EntityPlayer
+	---@param playerHUDIndex integer
+	---@param hudLayout HUDLayout
+	---@param position Vector
+	function HudHelper.RenderHUDElements(hudType, isPreCallback, player, playerHUDIndex, hudLayout, position, ...)
+		if checkValueType("player", player, "userdata") and getmetatable(player).__type == "EntityPlayer"
+			and checkValueType("playerHUDIndex", playerHUDIndex, "number")
+			and checkValueType("hudType", hudType, "number") and hudType >= 0 and hudType < HudHelper.HUDType.NUM_TYPES
+			and checkValueType("position", position, "userdata") and getmetatable(position).__type == "Vector"
+		then
+			local hudElements = HudHelper.HUD_ELEMENTS[hudType]
+			local extraParams = {...}
+			local conditionParam
+			if hudType == HudHelper.HUDType.ACTIVE_ITEM
+				or hudType == HudHelper.HUDType.TRINKET_ITEM
+				or hudType == HudHelper.HUDType.ACTIVE
+			then
+				conditionParam = extraParams[3]
+			elseif hudType == HudHelper.HUDType.TRINKET then
+				conditionParam = extraParams[2]
+			end
+			if hudType == HudHelper.HUDType.ACTIVE_ITEM
+			or hudType == HudHelper.HUDType.TRINKET_ITEM
+			then
+				local itemID = conditionParam
+			local hud = hudElements[itemID]
+				if hud
+					and (not player:IsCoopGhost() or hud.BypassGhostBaby)
+					and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
+				then
+					hud.OnRender(player, playerHUDIndex, hudLayout, position, ...)
+					HudHelper.LastAppliedHUD[hudType][playerHUDIndex] = hud
+				end
+			else
+				for _, hud in ipairs(hudElements) do
+					if (not player:IsCoopGhost() or hud.BypassGhostBaby)
+						and hud.Condition(player, playerHUDIndex, hudLayout, conditionParam)
+						and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
+					then
+						hud.OnRender(player, playerHUDIndex, hudLayout, position, ...)
+						HudHelper.LastAppliedHUD[hudType][playerHUDIndex] = hud
+					end
+				end
+			end
+		end
+	end
+
 	---@param player EntityPlayer
 	---@param playerHUDIndex integer
 	---@param hudLayout HUDLayout
@@ -939,15 +1038,15 @@ local function InitFunctions()
 	---@param hud HUDInfo
 	local function renderBaseHUDs(player, playerHUDIndex, hudLayout, pos, hud)
 		hud.OnRender(player, playerHUDIndex, hudLayout, pos)
-		HudHelper.LastAppliedHUD.Base[playerHUDIndex] = hud
+		HudHelper.LastAppliedHUD[HudHelper.HUDType.BASE][playerHUDIndex] = hud
 	end
 
 	---@param player EntityPlayer
 	---@param playerHUDIndex integer
 	---@param hudLayout HUDLayout
 	---@param pos Vector
-	---@param hud HUDInfo_Active
-	local function renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
+	---@param hud HUDInfo_Active | HUDInfo_ActiveItem
+	local function renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, isItem)
 		if REPENTOGON then return end
 		for slot = ActiveSlot.SLOT_POCKET, ActiveSlot.SLOT_PRIMARY, -1 do
 			local cornerHUD = math.min(4, playerHUDIndex)
@@ -999,9 +1098,18 @@ local function InitFunctions()
 			then
 				scale = 0.5
 			end
-			if not hud.Condition(player, playerHUDIndex, hudLayout, slot) then goto continue end
-			hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, slot)
-			HudHelper.LastAppliedHUD.Actives[playerHUDIndex] = hud
+			local itemID = player:GetActiveItem(slot)
+			if isItem and HudHelper.ShouldActiveBeDisplayed(player, itemID, slot) then
+				---@cast hud HUDInfo_ActiveItem
+				if itemID ~= hud.ItemID then goto continue end
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, itemID)
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE_ITEM][playerHUDIndex] = hud
+			else
+				---@cast hud HUDInfo_Active
+				if not hud.Condition(player, playerHUDIndex, hudLayout, slot) then goto continue end
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, slot)
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE][playerHUDIndex] = hud
+			end
 			::continue::
 		end
 	end
@@ -1027,13 +1135,24 @@ local function InitFunctions()
 		if playerHUDIndex == -1 then return end
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 
-		for _, hud in ipairs(HUD_ELEMENTS.Actives) do
+		for _, hud in ipairs(HUD_ELEMENTS[HudHelper.HUDType.ACTIVE]) do
 			if (not player:IsCoopGhost() or hud.BypassGhostBaby)
 				and hud.Condition(player, playerHUDIndex, hudLayout, slot)
 				and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 			then
 				hud.OnRender(player, playerHUDIndex, hudLayout, offset, alpha, scale, slot)
-				HudHelper.LastAppliedHUD.Actives[playerHUDIndex] = hud
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE][playerHUDIndex] = hud
+			end
+		end
+		local itemID = player:GetActiveItem(slot)
+		if HudHelper.ShouldActiveBeDisplayed(player, itemID, slot) then
+			local hud = HUD_ELEMENTS[HudHelper.HUDType.ACTIVE_ITEM][itemID]
+			if hud
+				and (not player:IsCoopGhost() or hud.BypassGhostBaby)
+				and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
+			then
+				hud.OnRender(player, playerHUDIndex, hudLayout, offset, alpha, scale, itemID)
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE_ITEM][playerHUDIndex] = hud
 			end
 		end
 	end
@@ -1055,7 +1174,7 @@ local function InitFunctions()
 			maxColumns = 3
 		end
 		hud.OnRender(player, playerHUDIndex, hudLayout, pos, maxColumns)
-		HudHelper.LastAppliedHUD.Health[playerHUDIndex] = hud
+		HudHelper.LastAppliedHUD[HudHelper.HUDType.HEALTH][playerHUDIndex] = hud
 	end
 
 	---@param offset Vector
@@ -1088,13 +1207,13 @@ local function InitFunctions()
 			maxColumns = 3
 		end
 
-		for _, hud in ipairs(HUD_ELEMENTS.Health) do
+		for _, hud in ipairs(HUD_ELEMENTS[HudHelper.HUDType.HEALTH]) do
 			if (not player:IsCoopGhost() or hud.BypassGhostBaby)
 				and hud.Condition(player, playerHUDIndex, hudLayout)
 				and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 			then
 				hud.OnRender(player, playerHUDIndex, hudLayout, pos, maxColumns)
-				HudHelper.LastAppliedHUD.Health[playerHUDIndex] = hud
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.HEALTH][playerHUDIndex] = hud
 			end
 		end
 	end
@@ -1134,15 +1253,15 @@ local function InitFunctions()
 		end
 
 		hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale)
-		HudHelper.LastAppliedHUD.PocketItems[playerHUDIndex] = hud
+		HudHelper.LastAppliedHUD[HudHelper.HUDType.POCKET][playerHUDIndex] = hud
 	end
 
 	---@param player EntityPlayer
 	---@param playerHUDIndex integer
 	---@param hudLayout HUDLayout
 	---@param pos Vector
-	---@param hud HUDInfo_Trinket
-	local function renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
+	---@param hud HUDInfo_Trinket | HUDInfo_TrinketItem
+	local function renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, isItem)
 		local cornerHUD = math.min(4, playerHUDIndex)
 		if hudLayout == HudHelper.HUDLayout.P1 or (hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN and not REPENTANCE_PLUS) then
 			cornerHUD = 3
@@ -1158,9 +1277,18 @@ local function InitFunctions()
 			then
 				scale = 0.5
 			end
-			if not hud.Condition(player, playerHUDIndex, hudLayout, slot) then goto continue end
-			hud.OnRender(player, playerHUDIndex, hudLayout, pos, scale, slot)
-			HudHelper.LastAppliedHUD.Trinkets[playerHUDIndex] = hud
+			local trinketID = player:GetTrinket(slot)
+			if isItem then
+				---@cast hud HUDInfo_TrinketItem
+				if hud.ItemID ~= trinketID then goto continue end
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, scale, 1, trinketID)
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.TRINKET_ITEM][playerHUDIndex] = hud
+			else
+				---@cast hud HUDInfo_Trinket
+				if not hud.Condition(player, playerHUDIndex, hudLayout, slot) then goto continue end
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, scale, slot)
+				HudHelper.LastAppliedHUD[HudHelper.HUDType.TRINKET][playerHUDIndex] = hud
+			end
 			::continue::
 		end
 	end
@@ -1176,7 +1304,7 @@ local function InitFunctions()
 		pos = pos + Vector(0, extraYPadding)
 		local customPadding = HudHelper.GetExtraHUDPadding(player, hud)
 		hud.OnRender(player, playerHUDIndex, hudLayout, pos + Vector(customPadding.X, 0))
-		HudHelper.LastAppliedHUD.Extra[playerHUDIndex] = hud
+		HudHelper.LastAppliedHUD[HudHelper.HUDType.EXTRA][playerHUDIndex] = hud
 		extraYPadding = extraYPadding + customPadding.Y
 	end
 
@@ -1230,11 +1358,15 @@ local function InitFunctions()
 				if not player then goto continue end
 				local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 
-				for hudName, hudTable in pairs(HudHelper.HUD_ELEMENTS) do
+				for hudType, hudTable in pairs(HudHelper.HUD_ELEMENTS) do
 					extraYPadding = 0
 					for _, hud in ipairs(hudTable) do
 						if not ((not player:IsCoopGhost() or hud.BypassGhostBaby)
-								and (hudName == "Actives" or hudName == "Trinkets" or hud.Condition(player, playerHUDIndex, hudLayout))
+								and (hudType == HudHelper.HUDType.ACTIVE
+								or hudType == HudHelper.HUDType.TRINKET
+								or hudType == HudHelper.HUDType.ACTIVE_ITEM
+								or hudType == HudHelper.HUDType.TRINKET_ITEM
+								or hud.Condition(player, playerHUDIndex, hudLayout))
 								and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 							) then
 							goto continue2
@@ -1244,13 +1376,13 @@ local function InitFunctions()
 						if i == 2 then
 							pos = pos + TWIN_COOP_OFFSET
 						end
-						if hudName == "Base" and i ~= 2 then
+						if hudType == HudHelper.HUDType.BASE and i ~= 2 then
 							---@cast hud HUDInfo
 							renderBaseHUDs(player, playerHUDIndex, hudLayout, pos, hud)
-						elseif hudName == "Actives" then
-							---@cast hud HUDInfo_Active
-							renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
-						elseif hudName == "Health" then
+						elseif hudType == HudHelper.HUDType.ACTIVE or hudType == HudHelper.HUDType.ACTIVE_ITEM then
+							---@cast hud HUDInfo_Active | HUDInfo_ActiveItem
+							renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, hudType == HudHelper.HUDType.ACTIVE_ITEM)
+						elseif hudType == HudHelper.HUDType.HEALTH then
 							---@cast hud HUDInfo_Health
 							pos = pos + HudHelper.GetHealthHUDOffset(playerHUDIndex)
 							if i == 2 then
@@ -1258,7 +1390,7 @@ local function InitFunctions()
 								pos = pos + Vector(0, 2)
 							end
 							renderHeartHUDs(player, playerHUDIndex, hudLayout, pos, hud)
-						elseif hudName == "PocketItems" then
+						elseif hudType == HudHelper.HUDType.POCKET then
 							---@cast hud HUDInfo_PocketItem
 							if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
 								pos = HudHelper.GetHUDPosition(4)
@@ -1268,10 +1400,10 @@ local function InitFunctions()
 							end
 							pos = pos + HudHelper.GetPocketHUDOffset(player)
 							renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
-						elseif hudName == "Trinkets" then
-							---@cast hud HUDInfo_Trinket
-							renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
-						elseif hudName == "Extra" then
+						elseif hudType == HudHelper.HUDType.TRINKET or hudType == HudHelper.HUDType.TRINKET_ITEM then
+							---@cast hud HUDInfo_Trinket | HUDInfo_TrinketItem
+							renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, hudType == HudHelper.HUDType.TRINKET_ITEM)
+						elseif hudType == HudHelper.HUDType.EXTRA then
 							pos = pos + HudHelper.GetExtraHUDOffset(playerHUDIndex)
 							---@cast hud HUDInfo_Extra
 							renderExtraHUDs(player, playerHUDIndex, hudLayout, pos, hud)
@@ -1283,14 +1415,15 @@ local function InitFunctions()
 				::continue::
 			end
 		end
-		if #HudHelper.HUD_ELEMENTS.Health == 0 then return end
+		if #HudHelper.HUD_ELEMENTS[HudHelper.HUDType.HEALTH] == 0 then return end
 		for _, ent in ipairs(Isaac.FindByType(EntityType.ENTITY_PLAYER)) do
 			local player = ent:ToPlayer()
 			if player and player.Parent and not player:IsDead() and player.Variant == 0 then
-				for _, hud in ipairs(HudHelper.HUD_ELEMENTS.Health) do
+				for _, hud in ipairs(HudHelper.HUD_ELEMENTS[HudHelper.HUDType.HEALTH]) do
 					if hud.Condition(player, -1, HudHelper.HUDLayout.STRAWMAN_HEARTS)
 						and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 					then
+						---@cast hud HUDInfo_Health
 						local position = HudHelper.GetStrawmanHealthHUDOffset(player)
 						renderHeartHUDs(player, -1, HudHelper.HUDLayout.STRAWMAN_HEARTS, position, hud)
 					end
@@ -1358,7 +1491,7 @@ local function InitFunctions()
 						and EID.player
 						and EID.player.FrameCount > 0
 						and playerHUDIndex == 1
-						and not HudHelper.LastAppliedHUD.Extra[1]
+						and not HudHelper.LastAppliedHUD[HudHelper.HUDType.EXTRA][1]
 						and EID.PositionModifiers["HudHelper"]
 						and EID.PositionModifiers["HudHelper"].Y ~= 0
 				end,
@@ -1377,8 +1510,8 @@ local function InitFunctions()
 						and EID.player
 						and EID.player.FrameCount > 0
 						and playerHUDIndex == 1
-						and HudHelper.LastAppliedHUD.Extra[1]
-						and HudHelper.LastAppliedHUD.Extra[1].Name ~= "Reset EID"
+						and HudHelper.LastAppliedHUD[HudHelper.HUDType.EXTRA][1]
+						and HudHelper.LastAppliedHUD[HudHelper.HUDType.EXTRA][1].Name ~= "Reset EID"
 				end,
 				OnRender = function(_, _, _, position)
 					local posYModifier = 0
