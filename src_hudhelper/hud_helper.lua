@@ -82,8 +82,15 @@ local function InitMod()
 		[HudHelper.HUDType.TRINKET] = {}, ---@type HUDInfo_Trinket[]
 		[HudHelper.HUDType.EXTRA] = {}, ---@type HUDInfo_Extra[]
 		[HudHelper.HUDType.ACTIVE_ITEM] = {}, ---@type {[CollectibleType]: HUDInfo_ActiveItem}
-		[HudHelper.HUDType.TRINKET_ITEM] = {} ---@type{[TrinketType]: HUDInfo_TrinketItem}
+		[HudHelper.HUDType.TRINKET_ITEM] = {}, ---@type{[TrinketType]: HUDInfo_TrinketItem}
 	}
+	--Legacy
+	HudHelper.HUD_ELEMENTS.Base = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.BASE]
+	HudHelper.HUD_ELEMENTS.Actives = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.ACTIVE]
+	HudHelper.HUD_ELEMENTS.Health = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.HEALTH]
+	HudHelper.HUD_ELEMENTS.PocketItems = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.POCKET]
+	HudHelper.HUD_ELEMENTS.Trinkets = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.TRINKET]
+	HudHelper.HUD_ELEMENTS.Extra = HudHelper.HUD_ELEMENTS[HudHelper.HUDType.EXTRA]
 
 	if CACHED_ELEMENTS then
 		for hudType, elements in pairs(CACHED_ELEMENTS) do
@@ -881,14 +888,15 @@ local function InitFunctions()
 		end
 
 		hudElements[targetIndex] = {
-			Name = checkValueType("Name", params.Name, "string", useItemID and "nil" or nil),
-			Priority = checkValueType("Priority", params.Priority, "number", useItemID and "nil" or nil),
-			Condition = checkValueType("Condition", params.Condition, "function", useItemID and "nil" or nil),
+			Name = checkValueType("Name", params.Name, useItemID and "nil" or "string"),
+			Priority = checkValueType("Priority", params.Priority, useItemID and "nil" or "number"),
+			Condition = checkValueType("Condition", params.Condition, useItemID and "nil" or "function"),
 			OnRender = checkValueType("OnRender", params.OnRender, "function"),
 			XPadding = xPadding,
 			YPadding = checkValueType("YPadding", params.YPadding, "number", "function", "nil"),
 			BypassGhostBaby = checkValueType("BypassGhostBaby", params.BypassGhostBaby, "boolean", "nil"),
-			PreRenderCallback = checkValueType("PreRenderCallback", params.PreRenderCallback, "boolean", "nil")
+			PreRenderCallback = checkValueType("PreRenderCallback", params.PreRenderCallback, "boolean", "nil"),
+			ItemID = checkValueType("ItemID", params.ItemID, useItemID and "number" or "nil")
 		}
 
 		if not useItemID then
@@ -925,7 +933,23 @@ local function InitFunctions()
 		[HudHelper.HUDType.TRINKET] = {}, ---@type table<integer, HUDInfo_Trinket>
 		[HudHelper.HUDType.EXTRA] = {}, ---@type table<integer, HUDInfo_Extra>
 		[HudHelper.HUDType.ACTIVE_ITEM] = {}, ---@type table<integer, HUDInfo_ActiveItem>
-		[HudHelper.HUDType.TRINKET_ITEM] = {} ---@type table<integer, HUDInfo_TrinketItem>
+		[HudHelper.HUDType.TRINKET_ITEM] = {}, ---@type table<integer, HUDInfo_TrinketItem>
+	}
+	--Legacy
+	HudHelper.LastAppliedHUD.Base = HudHelper.LastAppliedHUD[HudHelper.HUDType.BASE]
+	HudHelper.LastAppliedHUD.Actives = HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE]
+	HudHelper.LastAppliedHUD.Health = HudHelper.LastAppliedHUD[HudHelper.HUDType.HEALTH]
+	HudHelper.LastAppliedHUD.PocketItems = HudHelper.LastAppliedHUD[HudHelper.HUDType.POCKET]
+	HudHelper.LastAppliedHUD.Trinkets = HudHelper.LastAppliedHUD[HudHelper.HUDType.TRINKET]
+	HudHelper.LastAppliedHUD.Extra = HudHelper.LastAppliedHUD[HudHelper.HUDType.EXTRA]
+
+	--Legacy
+	HudHelper.HUDTypeToTable = {
+		[0] = HudHelper.HUD_ELEMENTS.Base,
+		[1] = HudHelper.HUD_ELEMENTS.Actives,
+		[2] = HudHelper.HUD_ELEMENTS.Health,
+		[3] = HudHelper.HUD_ELEMENTS.PocketItems,
+		[4] = HudHelper.HUD_ELEMENTS.Extra,
 	}
 
 	local numPlayers = 0
@@ -1006,10 +1030,10 @@ local function InitFunctions()
 				conditionParam = extraParams[2]
 			end
 			if hudType == HudHelper.HUDType.ACTIVE_ITEM
-			or hudType == HudHelper.HUDType.TRINKET_ITEM
+				or hudType == HudHelper.HUDType.TRINKET_ITEM
 			then
 				local itemID = conditionParam
-			local hud = hudElements[itemID]
+				local hud = hudElements[itemID & ~TrinketType.TRINKET_GOLDEN_FLAG]
 				if hud
 					and (not player:IsCoopGhost() or hud.BypassGhostBaby)
 					and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
@@ -1280,7 +1304,7 @@ local function InitFunctions()
 			local trinketID = player:GetTrinket(slot)
 			if isItem then
 				---@cast hud HUDInfo_TrinketItem
-				if hud.ItemID ~= trinketID then goto continue end
+				if hud.ItemID ~= trinketID & ~TrinketType.TRINKET_GOLDEN_FLAG then goto continue end
 				hud.OnRender(player, playerHUDIndex, hudLayout, pos, scale, 1, trinketID)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.TRINKET_ITEM][playerHUDIndex] = hud
 			else
@@ -1359,57 +1383,79 @@ local function InitFunctions()
 				local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 
 				for hudType, hudTable in pairs(HudHelper.HUD_ELEMENTS) do
+					if type(hudType) == "string" then goto skipLegacy end
 					extraYPadding = 0
-					for _, hud in ipairs(hudTable) do
-						if not ((not player:IsCoopGhost() or hud.BypassGhostBaby)
-								and (hudType == HudHelper.HUDType.ACTIVE
-								or hudType == HudHelper.HUDType.TRINKET
-								or hudType == HudHelper.HUDType.ACTIVE_ITEM
-								or hudType == HudHelper.HUDType.TRINKET_ITEM
-								or hud.Condition(player, playerHUDIndex, hudLayout))
-								and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
-							) then
-							goto continue2
-						end
-
-						local pos = HudHelper.GetHUDPosition(playerHUDIndex)
-						if i == 2 then
-							pos = pos + TWIN_COOP_OFFSET
-						end
-						if hudType == HudHelper.HUDType.BASE and i ~= 2 then
-							---@cast hud HUDInfo
-							renderBaseHUDs(player, playerHUDIndex, hudLayout, pos, hud)
-						elseif hudType == HudHelper.HUDType.ACTIVE or hudType == HudHelper.HUDType.ACTIVE_ITEM then
-							---@cast hud HUDInfo_Active | HUDInfo_ActiveItem
-							renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, hudType == HudHelper.HUDType.ACTIVE_ITEM)
-						elseif hudType == HudHelper.HUDType.HEALTH then
-							---@cast hud HUDInfo_Health
-							pos = pos + HudHelper.GetHealthHUDOffset(playerHUDIndex)
-							if i == 2 then
-								--WHYYYYY ARE HEARTS NOT OFFSET THE SAME AMOUNT AS ACTIVES WHYYYYYY
-								pos = pos + Vector(0, 2)
+					---Separated as ACTIVE_ITEM and TRINKET_ITEM are indexed uniquely by itemIDs instead of a priority order
+					if hudType ~= HudHelper.HUDType.ACTIVE_ITEM and hudType ~= HudHelper.HUDType.TRINKET_ITEM then
+						for _, hud in ipairs(hudTable) do
+							if not ((not player:IsCoopGhost() or hud.BypassGhostBaby)
+									and (hudType == HudHelper.HUDType.ACTIVE
+									or hudType == HudHelper.HUDType.TRINKET
+									or hud.Condition(player, playerHUDIndex, hudLayout))
+									and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
+								) then
+								goto continue2
 							end
-							renderHeartHUDs(player, playerHUDIndex, hudLayout, pos, hud)
-						elseif hudType == HudHelper.HUDType.POCKET then
-							---@cast hud HUDInfo_PocketItem
-							if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
-								pos = HudHelper.GetHUDPosition(4)
-							end
+							local pos = HudHelper.GetHUDPosition(playerHUDIndex)
 							if i == 2 then
 								pos = pos + TWIN_COOP_OFFSET
 							end
-							pos = pos + HudHelper.GetPocketHUDOffset(player)
-							renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
-						elseif hudType == HudHelper.HUDType.TRINKET or hudType == HudHelper.HUDType.TRINKET_ITEM then
-							---@cast hud HUDInfo_Trinket | HUDInfo_TrinketItem
-							renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, hudType == HudHelper.HUDType.TRINKET_ITEM)
-						elseif hudType == HudHelper.HUDType.EXTRA then
-							pos = pos + HudHelper.GetExtraHUDOffset(playerHUDIndex)
-							---@cast hud HUDInfo_Extra
-							renderExtraHUDs(player, playerHUDIndex, hudLayout, pos, hud)
+							if hudType == HudHelper.HUDType.BASE and i ~= 2 then
+								---@cast hud HUDInfo
+								renderBaseHUDs(player, playerHUDIndex, hudLayout, pos, hud)
+							elseif hudType == HudHelper.HUDType.ACTIVE then
+								---@cast hud HUDInfo_Active
+								renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, false)
+							elseif hudType == HudHelper.HUDType.HEALTH then
+								---@cast hud HUDInfo_Health
+								pos = pos + HudHelper.GetHealthHUDOffset(playerHUDIndex)
+								if i == 2 then
+									--WHYYYYY ARE HEARTS NOT OFFSET THE SAME AMOUNT AS ACTIVES WHYYYYYY
+									pos = pos + Vector(0, 2)
+								end
+								renderHeartHUDs(player, playerHUDIndex, hudLayout, pos, hud)
+							elseif hudType == HudHelper.HUDType.POCKET then
+								---@cast hud HUDInfo_PocketItem
+								if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
+									pos = HudHelper.GetHUDPosition(4)
+								end
+								if i == 2 then
+									pos = pos + TWIN_COOP_OFFSET
+								end
+								pos = pos + HudHelper.GetPocketHUDOffset(player)
+								renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
+							elseif hudType == HudHelper.HUDType.TRINKET then
+								---@cast hud HUDInfo_Trinket
+								renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, false)
+							elseif hudType == HudHelper.HUDType.EXTRA then
+								pos = pos + HudHelper.GetExtraHUDOffset(playerHUDIndex)
+								---@cast hud HUDInfo_Extra
+								renderExtraHUDs(player, playerHUDIndex, hudLayout, pos, hud)
+							end
+							::continue2::
 						end
-						::continue2::
+					else
+						for _, hud in pairs(hudTable) do
+							if not ((not player:IsCoopGhost() or hud.BypassGhostBaby)
+									and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
+								) then
+								goto continue2
+							end
+							local pos = HudHelper.GetHUDPosition(playerHUDIndex)
+							if i == 2 then
+								pos = pos + TWIN_COOP_OFFSET
+							end
+							if hudType == HudHelper.HUDType.ACTIVE_ITEM then
+								---@cast hud HUDInfo_ActiveItem
+								renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, true)
+							elseif hudType == HudHelper.HUDType.TRINKET_ITEM then
+								---@cast hud HUDInfo_TrinketItem
+								renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, true)
+							end
+							::continue2::
+						end
 					end
+					::skipLegacy::
 				end
 
 				::continue::
