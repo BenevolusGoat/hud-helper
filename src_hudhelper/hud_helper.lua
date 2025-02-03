@@ -1969,7 +1969,7 @@ local function InitFunctions()
 	end
 
 	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, preRenderHUDs)
-	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, updateGoldenItemHUD)
+	AddCallback(ModCallbacks.MC_POST_RENDER, updateGoldenItemHUD)
 	AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType.COLLECTIBLE_FLIP)
 
 	--#endregion
