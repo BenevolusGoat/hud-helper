@@ -1115,7 +1115,7 @@ local function InitFunctions()
 	---@param alpha number
 	---@param isGolden? boolean
 	---@param renderShadow? boolean
-	function HudHelper.RenderHUDItemSprite(spritePath, pos, scale, alpha, isGolden, renderShadow)
+	function HudHelper.RenderHUDItem(spritePath, pos, scale, alpha, isGolden, renderShadow)
 		if isGolden and spritePath ~= lastRenderedGoldenHUDSprite then
 			if not goldenHUDSprite:IsLoaded() or not shadowSprite:IsLoaded() then
 				if REPENTOGON then
