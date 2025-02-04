@@ -1996,7 +1996,7 @@ local function InitFunctions()
 			return startAt + (rows - 3) * 10
 		end,
 		Condition = function(player, playerHUDIndex)
-			if playerHUDIndex > 2 then
+			if playerHUDIndex > 2 or game:GetLevel():GetCurses() | LevelCurse.CURSE_OF_THE_UNKNOWN > 0 then
 				return false
 			end
 
