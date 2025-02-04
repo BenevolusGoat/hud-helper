@@ -1811,7 +1811,7 @@ local function InitFunctions()
 				::continue::
 			end
 		end
-		if #HudHelper.HUD_ELEMENTS[HudHelper.HUDType.HEALTH] == 0 then
+		if #HudHelper.HUD_ELEMENTS[HudHelper.HUDType.HEALTH] ~= 0 and not REPENTOGON then
 			for _, ent in ipairs(Isaac.FindByType(EntityType.ENTITY_PLAYER)) do
 				local player = ent:ToPlayer()
 				if player and player.Parent and not player:IsDead() and player.Variant == 0 then
