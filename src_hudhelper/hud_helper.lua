@@ -1476,8 +1476,9 @@ local function InitFunctions()
 			if hud
 				and (not player:IsCoopGhost() or hud.BypassGhostBaby)
 				and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
+				and (not hud.Condition or hud.Condition(player, playerHUDIndex, hudLayout))
 			then
-				hud.OnRender(player, playerHUDIndex, hudLayout, offset, alpha, scale, itemID)
+				hud.OnRender(player, playerHUDIndex, hudLayout, offset, alpha, scale, itemID, slot)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE_ID][playerHUDIndex] = hud
 			end
 		end
