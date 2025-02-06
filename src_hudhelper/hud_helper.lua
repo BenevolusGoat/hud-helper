@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.1 -- do not modify
+local VERSION = 1.11 -- do not modify
 local game = Game()
 
 -- debug
@@ -49,14 +49,14 @@ local function InitMod()
 	---@field Priority nil
 	---@field Condition nil | fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout): boolean
 	---@field ItemID CollectibleType
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, itemID: CollectibleType) @Runs for each player, if the condition is true.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, itemID: CollectibleType, slot: ActiveSlot?) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_TrinketID: HUDInfo
 	---@field Name nil
 	---@field Priority nil
 	---@field Condition nil | fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout): boolean
 	---@field ItemID TrinketType
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, trinketID: TrinketType) @Runs for each player, if the condition is true.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, trinketID: TrinketType, slot: integer?) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_CardID: HUDInfo
 	---@field Name nil
@@ -1428,7 +1428,7 @@ local function InitFunctions()
 				and (not hud.Condition or hud.Condition(player, playerHUDIndex, hudLayout))
 			then
 				---@cast hud HUDInfo_ActiveID
-				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, itemID)
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, itemID, slot)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE_ID][playerHUDIndex] = hud
 			elseif not isItem
 				and hud.Condition(player, playerHUDIndex, hudLayout, slot)
@@ -1603,7 +1603,7 @@ local function InitFunctions()
 				and (not hud.Condition or hud.Condition(player, playerHUDIndex, hudLayout))
 			then
 				---@cast hud HUDInfo_TrinketID
-				hud.OnRender(player, playerHUDIndex, hudLayout, pos, 1, scale, trinketID)
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, 1, scale, trinketID, slot)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.TRINKET_ID][playerHUDIndex] = hud
 			elseif not isItem
 				and hud.Condition(player, playerHUDIndex, hudLayout, slot)
