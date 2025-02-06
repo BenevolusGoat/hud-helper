@@ -1979,13 +1979,27 @@ local function InitFunctions()
 		Name = "Heart Cap",
 		Priority = HudHelper.Priority.VANILLA - 1,
 		XPadding = 0,
-		YPadding = function(player, _, hudLayout)
+		YPadding = function(player, playerHUDIndex, hudLayout)
 			local heartPerRow = HudHelper.Utils.GetMaxHeartColumns(hudLayout) * 2
 			local startAt = (heartPerRow == 12) and 5 or -15
+			local taintedOffset = 0
 
 			--condensedCoopHUD
 			if REPENTANCE_PLUS and hudLayout == HudHelper.HUDLayout.COOP then
-				startAt = -6
+				startAt = startAt - 11
+			end
+
+			for _, hud in ipairs(HudHelper.HUD_ELEMENTS[HudHelper.HUDType.EXTRA]) do
+				if hud.Priority >= HudHelper.Priority.HIGHEST then
+					break
+				end
+
+				if hud.Name == "Tainted Blue Baby" or hud.Name == "Tainted Isaac" then
+					if hud.Condition(player, playerHUDIndex, hudLayout) then
+						taintedOffset = taintedOffset +
+						break
+					end
+				end
 			end
 
 			local rows = HudHelper.Utils.GetCurrentMaxHeartRows(player)
@@ -1993,10 +2007,11 @@ local function InitFunctions()
 			if not (NoHealthCapModEnabled or CustomHealthAPI) then
 				rows = min(48 / heartPerRow, rows) --Hearts literally stop rendering after 4 rows legitimately
 			end
-			return startAt + (rows - 3) * 10
+
+			return max(-6, startAt + (rows - 3) * 10 - taintedOffsets)
 		end,
 		Condition = function(player, playerHUDIndex)
-			if playerHUDIndex > 2 or game:GetLevel():GetCurses() | LevelCurse.CURSE_OF_THE_UNKNOWN > 0 then
+			if playerHUDIndex > 2 or game:GetLevel():GetCurses() & LevelCurse.CURSE_OF_THE_UNKNOWN == LevelCurse.CURSE_OF_THE_UNKNOWN then
 				return false
 			end
 
