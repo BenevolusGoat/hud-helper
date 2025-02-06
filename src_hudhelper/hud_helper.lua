@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.11 -- do not modify
+local VERSION = 1.11 -- (v1.1.1) do not modify
 local game = Game()
 
 -- debug
