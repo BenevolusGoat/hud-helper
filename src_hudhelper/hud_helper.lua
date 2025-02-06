@@ -277,7 +277,7 @@ local function InitFunctions()
 			return false
 		end
 
-		if twinPlayer                                             --You have a twin player
+		if twinPlayer											 --You have a twin player
 			and GetPtrHash(player:GetMainTwin()) == GetPtrHash(player) --Are the main of the 2 twins
 			and not HudHelper.HUDTwinBlacklist[twinPlayer:GetPlayerType()] --Ensure your twin is allowed a HUD
 		then
@@ -1982,7 +1982,7 @@ local function InitFunctions()
 		YPadding = function(player, playerHUDIndex, hudLayout)
 			local heartPerRow = HudHelper.Utils.GetMaxHeartColumns(hudLayout) * 2
 			local startAt = (heartPerRow == 12) and 5 or -15
-			local taintedOffset = 0
+			local taintedOffsets = 0
 
 			--condensedCoopHUD
 			if REPENTANCE_PLUS and hudLayout == HudHelper.HUDLayout.COOP then
@@ -1996,7 +1996,12 @@ local function InitFunctions()
 
 				if hud.Name == "Tainted Blue Baby" or hud.Name == "Tainted Isaac" then
 					if hud.Condition(player, playerHUDIndex, hudLayout) then
-						taintedOffset = taintedOffset +
+						taintedOffsets = taintedOffsets + processFuncOrValue(hud.YPadding, player, playerHUDIndex, hudLayout) + 5
+
+						if startAt == -6 then
+							taintedOffsets = taintedOffsets + 6
+						end
+
 						break
 					end
 				end
