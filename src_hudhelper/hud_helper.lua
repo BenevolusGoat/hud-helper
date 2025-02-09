@@ -592,6 +592,8 @@ local function InitFunctions()
 					hudPos = Vector(hudPos.X, hudPos.Y - 32 + 10 * hudOffsetOption)
 				elseif player:GetPlayerType() == PlayerType.PLAYER_CAIN_B then
 					hudPos = Vector(hudPos.X, hudPos.Y - 28 + 10 * hudOffsetOption)
+				elseif HudHelper.Utils.GetHUDLayout(playerHUDIndex) == HudHelper.HUDLayout.TWIN_COOP then
+					hudPos = Vector(hudPos.X, hudPos.Y - 32 + 16 * hudOffsetOption)
 				end
 			end
 		end
@@ -789,9 +791,8 @@ local function InitFunctions()
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 		playerHUDIndex = min(4, playerHUDIndex)
 
-		if hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN
-		then
-			healthOffset = Vector(119, 12)
+		if hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN then
+			healthOffset = REPENTANCE_PLUS and Vector(135, 12) or Vector(119, 12)
 		end
 		return healthOffset
 	end
@@ -1394,7 +1395,7 @@ local function InitFunctions()
 				or hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN
 				or hudLayout == HudHelper.HUDLayout.TWIN_COOP
 			then
-				if REPENTANCE_PLUS then
+				if true and hudLayout == HudHelper.HUDLayout.TWIN_COOP then
 					if slot == ActiveSlot.SLOT_SECONDARY then
 						scale = 0.245
 					else
@@ -1409,7 +1410,12 @@ local function InitFunctions()
 					and player.ControlsEnabled
 					and Input.IsActionPressed(ButtonAction.ACTION_DROP, player.ControllerIndex)
 				if Options.JacobEsauControls and Options.JacobEsauControls == 1 then
-					alpha = i == 1 and 1 or 0.25
+					if hudLayout == HudHelper.HUDLayout.TWIN_COOP then
+						alpha = (i == 1) and 1 or 0.25
+					else
+						alpha = (i == 1) and 0.25 or 1
+					end
+
 					if dropTrigger then
 						alpha = i == 1 and 0.25 or 1
 					end
