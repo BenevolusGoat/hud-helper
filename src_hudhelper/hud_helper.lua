@@ -589,9 +589,9 @@ local function InitFunctions()
 				if player:GetPlayerType() == PlayerType.PLAYER_ISAAC_B
 					or player:GetPlayerType() == PlayerType.PLAYER_BLUEBABY_B
 				then
-					hudPos = Vector(hudPos.X, hudPos.Y - 22)
+					hudPos = Vector(hudPos.X, hudPos.Y - 32 + 10 * hudOffsetOption)
 				elseif player:GetPlayerType() == PlayerType.PLAYER_CAIN_B then
-					hudPos = Vector(hudPos.X, hudPos.Y - 18)
+					hudPos = Vector(hudPos.X, hudPos.Y - 28 + 10 * hudOffsetOption)
 				end
 			end
 		end
