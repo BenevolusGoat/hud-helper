@@ -1395,7 +1395,7 @@ local function InitFunctions()
 				or hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN
 				or hudLayout == HudHelper.HUDLayout.TWIN_COOP
 			then
-				if true and hudLayout == HudHelper.HUDLayout.TWIN_COOP then
+				if hudLayout == HudHelper.HUDLayout.TWIN_COOP then
 					if slot == ActiveSlot.SLOT_SECONDARY then
 						scale = 0.245
 					else
