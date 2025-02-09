@@ -585,11 +585,14 @@ local function InitFunctions()
 			and HudHelper.HUDPlayers[playerHUDIndex][1]
 		then
 			local player = tryGetPlayerFromPtr(HudHelper.HUDPlayers[playerHUDIndex][1])
-			if player
-				and (player:GetPlayerType() == PlayerType.PLAYER_ISAAC_B
-				or player:GetPlayerType() == PlayerType.PLAYER_BLUEBABY_B)
-			then
-				hudPos = Vector(hudPos.X, hudPos.Y - 22)
+			if player then
+				if player:GetPlayerType() == PlayerType.PLAYER_ISAAC_B
+					or player:GetPlayerType() == PlayerType.PLAYER_BLUEBABY_B
+				then
+					hudPos = Vector(hudPos.X, hudPos.Y - 32 + 10 * hudOffsetOption)
+				elseif player:GetPlayerType() == PlayerType.PLAYER_CAIN_B then
+					hudPos = Vector(hudPos.X, hudPos.Y - 28 + 10 * hudOffsetOption)
+				end
 			end
 		end
 
@@ -2047,6 +2050,21 @@ local function InitFunctions()
 		end,
 		OnRender = function() end, -- handled by the game
 	}, HudHelper.HUDType.EXTRA)
+
+	if REPENTANCE_PLUS then
+		HudHelper.RegisterHUDElement({
+			Name = "Bag of Crafting",
+			Priority = HudHelper.Priority.VANILLA,
+			XPadding = 0,
+			YPadding = 7,
+			Condition = function(player, playerHUDIndex, hudLayout)
+				return player:GetActiveItem(ActiveSlot.SLOT_POCKET) == CollectibleType.COLLECTIBLE_BAG_OF_CRAFTING
+					and hudLayout == HudHelper.HUDLayout.COOP and playerHUDIndex <= 2
+			end,
+			OnRender = function() end, -- handled by the game
+		}, HudHelper.HUDType.EXTRA)
+	end
+
 	HudHelper.RegisterHUDElement({
 		Name = "P1 Main Twin",
 		Priority = HudHelper.Priority.VANILLA,
