@@ -1155,7 +1155,7 @@ local function InitFunctions()
 				if REPENTOGON then
 					goldenHUDSprite:Load("gfx/ui/hudhelper_hud_item.anm2")
 				else
-					goldenHUDSprite:Load("gfx/ui/golden_item_hud.anm2")
+					goldenHUDSprite:Load("gfx/ui/hudhelper_hud_golden_item.anm2")
 				end
 				goldenHUDSprite:Play("Idle")
 				shadowSprite:Load("gfx/ui/hudhelper_hud_item.anm2")
