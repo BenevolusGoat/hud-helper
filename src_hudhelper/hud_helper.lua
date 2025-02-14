@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.11 -- (v1.1.1) do not modify
+local VERSION = 1.12 -- (v1.1.2) do not modify
 local game = Game()
 
 -- debug
@@ -141,7 +141,27 @@ local function InitMod()
 		end
 	end
 	HudHelper.ItemSpecificOffset = {
-		[CollectibleType.COLLECTIBLE_JAR_OF_FLIES] = Vector(4, 2),
+		Normal = {
+			[CollectibleType.COLLECTIBLE_THE_JAR] = Vector(4, 3),
+			[CollectibleType.COLLECTIBLE_JAR_OF_FLIES] = Vector(4, 2),
+			[CollectibleType.COLLECTIBLE_JAR_OF_WISPS] = Vector.One,
+			[CollectibleType.COLLECTIBLE_GLOWING_HOUR_GLASS] = -Vector.One,
+			[CollectibleType.COLLECTIBLE_URN_OF_SOULS] = Vector(2, 1),
+		},
+		Book = {
+			[CollectibleType.COLLECTIBLE_THE_JAR] = Vector(-1, 0),
+			[CollectibleType.COLLECTIBLE_JAR_OF_FLIES] = -Vector.One,
+			[CollectibleType.COLLECTIBLE_JAR_OF_WISPS] = Vector.Zero,
+			[CollectibleType.COLLECTIBLE_GLOWING_HOUR_GLASS] = -Vector.One,
+			[CollectibleType.COLLECTIBLE_URN_OF_SOULS] = Vector(1, 0),
+		},
+		TwinCoopBook = { --WHY DOES IT CHANGE AGAIN FOR THIS
+			[CollectibleType.COLLECTIBLE_THE_JAR] = Vector(-6, -3),
+			[CollectibleType.COLLECTIBLE_JAR_OF_FLIES] = Vector(-6, -4),
+			[CollectibleType.COLLECTIBLE_JAR_OF_WISPS] = -Vector.One,
+			[CollectibleType.COLLECTIBLE_GLOWING_HOUR_GLASS] = -Vector.One,
+			[CollectibleType.COLLECTIBLE_URN_OF_SOULS] = Vector(0, -1),
+		}
 	}
 
 	---@enum HUDLayout
@@ -693,8 +713,16 @@ local function InitFunctions()
 		return copyVector(customOffset[playerHUDIndex])
 	end
 
-	function HudHelper.GetItemSpecificOffset(itemID)
-		return HudHelper.ItemSpecificOffset[itemID] or Vector.Zero
+	function HudHelper.GetItemSpecificOffset(itemID, book, twinCOOP)
+		local checkFrom = HudHelper.ItemSpecificOffset
+
+		if book then
+			checkFrom = twinCOOP and checkFrom.TwinCoopBook or checkFrom.Book
+		else
+			checkFrom = checkFrom.Normal
+		end
+
+		return checkFrom[itemID] or Vector.Zero
 	end
 
 	---@param player EntityPlayer
@@ -721,9 +749,11 @@ local function InitFunctions()
 	---@param playerHUDIndex integer
 	---@param slot ActiveSlot
 	---@return Vector
-	function HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot)
-		local itemSpecificOffset = HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot)) + getBookOffset(player)
+	function HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale)
+		local itemSpecificOffset = slot == ActiveSlot.SLOT_PRIMARY and getBookOffset(player) or Vector.Zero
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
+
+		itemSpecificOffset = itemSpecificOffset + HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot), itemSpecificOffset.Y == -4, scale == 0.5) * scale
 
 		if slot <= ActiveSlot.SLOT_SECONDARY then
 			playerHUDIndex = min(4, playerHUDIndex)
@@ -1125,7 +1155,7 @@ local function InitFunctions()
 				if REPENTOGON then
 					goldenHUDSprite:Load("gfx/ui/hudhelper_hud_item.anm2")
 				else
-					goldenHUDSprite:Load("gfx/ui/hudhelper_hud_golden_item.anm2")
+					goldenHUDSprite:Load("gfx/ui/golden_item_hud.anm2")
 				end
 				goldenHUDSprite:Play("Idle")
 				shadowSprite:Load("gfx/ui/hudhelper_hud_item.anm2")
@@ -1384,10 +1414,6 @@ local function InitFunctions()
 				cornerHUD = 4
 			end
 
-			pos = HudHelper.GetHUDPosition(cornerHUD) + HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot)
-			if i == 2 then
-				pos = pos + TWIN_COOP_OFFSET
-			end
 			local scale = 1
 			local alpha = 1
 
@@ -1430,7 +1456,15 @@ local function InitFunctions()
 			then
 				scale = 0.5
 			end
+
+			pos = HudHelper.GetHUDPosition(cornerHUD) + HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale)
+
+			if i == 2 then
+				pos = pos + TWIN_COOP_OFFSET
+			end
+
 			local itemID = player:GetActiveItem(slot)
+
 			if isItem
 				and itemID == hud.ItemID
 				and HudHelper.ShouldActiveBeDisplayed(player, itemID, slot)
@@ -1469,6 +1503,8 @@ local function InitFunctions()
 		local playerHUDIndex = HudHelper.Utils.GetHUDPlayerNumberIndex(player)
 		if playerHUDIndex == -1 then return end
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
+
+		offset = offset + HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot), slot == ActiveSlot.SLOT_PRIMARY and (getBookOffset(player).Y == -4), scale == 0.5) * scale
 
 		for _, hud in ipairs(HUD_ELEMENTS[HudHelper.HUDType.ACTIVE]) do
 			if (not player:IsCoopGhost() or hud.BypassGhostBaby)
