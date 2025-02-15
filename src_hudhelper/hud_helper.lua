@@ -1131,6 +1131,7 @@ local function InitFunctions()
 		end
 		pos = pos + Vector(xPos, yPos)
 		spr:Render(pos)
+		return pos
 	end
 
 	local lastRenderedHUDSprite
@@ -1456,7 +1457,9 @@ local function InitFunctions()
 			then
 				scale = 0.5
 			end
-
+			if game:GetLevel():GetCurrentRoomDesc().Flags & RoomDescriptor.FLAG_CURSED_MIST == RoomDescriptor.FLAG_CURSED_MIST then
+				alpha = 0.5
+			end
 			pos = HudHelper.GetHUDPosition(cornerHUD) + HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale)
 
 			if i == 2 then
