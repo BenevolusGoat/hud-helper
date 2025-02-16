@@ -31,7 +31,8 @@ local function InitMod()
 	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, slot: ActiveSlot) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_Health: HUDInfo
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, maxColumns: integer) @Runs for each player, if the condition is true.
+	---@field Condition fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, mainPlayer: EntityPlayer?): boolean @A function that returns true if the HUD element should be drawn.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, maxColumns: integer, alpha: number, mainPlayer: EntityPlayer?) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_Pocket: HUDInfo
 	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number) @Runs for each player, if the condition is true.
@@ -480,6 +481,12 @@ local function InitFunctions()
 				end
 			end
 		end
+	end
+
+	function HudHelper.Utils.CheckFadedHealth(player)
+		return player:GetEffects():HasNullEffect(NullItemID.ID_LOST_CURSE)
+		or (player:GetSubPlayer() == nil and (player:GetPlayerType() == PlayerType.PLAYER_THESOUL or player:GetPlayerType() == PlayerType.PLAYER_THEFORGOTTEN))
+		or player:GetPlayerType() == PlayerType.PLAYER_JACOB2_B
 	end
 
 	local tempest = Font()
@@ -1537,11 +1544,11 @@ local function InitFunctions()
 	---@param hudLayout HUDLayout
 	---@param pos Vector
 	---@param hud HUDInfo_Health
-	local function renderHeartHUDs(player, playerHUDIndex, hudLayout, pos, hud)
+	local function renderHeartHUDs(player, playerHUDIndex, hudLayout, pos, hud, mainPlayer)
 		if REPENTOGON then return end
 		local maxColumns = HudHelper.Utils.GetMaxHeartColumns(hudLayout)
-
-		hud.OnRender(player, playerHUDIndex, hudLayout, pos, maxColumns)
+		local alpha = HudHelper.Utils.CheckFadedHealth(player) and 0.3 or 1
+		hud.OnRender(player, playerHUDIndex, hudLayout, pos, maxColumns, alpha, mainPlayer)
 		HudHelper.LastAppliedHUD[HudHelper.HUDType.HEALTH][playerHUDIndex] = hud
 	end
 
@@ -1551,9 +1558,8 @@ local function InitFunctions()
 	---@param unkFloat number
 	---@param player EntityPlayer
 	---@param isPreCallback boolean
-	local function renderHeartHUDs_REPENTOGON(_, offset, sprite, pos, unkFloat, player, isPreCallback)
-		if not player:Exists()
-			or HudHelper.ShouldHideHUD()
+	local function renderHeartHUDs_REPENTOGON(_, offset, sprite, pos, unkFloat, player, isPreCallback, dontLoop, mainPlayer)
+		if HudHelper.ShouldHideHUD()
 			or player.Variant ~= 0
 			or not HudHelper.HUDPlayers[1]
 			or not HudHelper.HUDPlayers[1][1]
@@ -1562,20 +1568,23 @@ local function InitFunctions()
 			return
 		end
 
+		local alpha = HudHelper.Utils.CheckFadedHealth(player) and 0.3 or 1
 		local playerHUDIndex = HudHelper.Utils.GetHUDPlayerNumberIndex(player)
 		local hudLayout = playerHUDIndex == -1 and HudHelper.HUDLayout.STRAWMAN_HEARTS or
 			HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 
 		local maxColumns = HudHelper.Utils.GetMaxHeartColumns(hudLayout)
-
 		for _, hud in ipairs(HUD_ELEMENTS[HudHelper.HUDType.HEALTH]) do
 			if (not player:IsCoopGhost() or hud.BypassGhostBaby)
-				and hud.Condition(player, playerHUDIndex, hudLayout)
+				and hud.Condition(player, playerHUDIndex, hudLayout, mainPlayer)
 				and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 			then
-				hud.OnRender(player, playerHUDIndex, hudLayout, pos, maxColumns)
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, maxColumns, alpha, mainPlayer)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.HEALTH][playerHUDIndex] = hud
 			end
+		end
+		if player:GetSubPlayer() and not dontLoop then
+			renderHeartHUDs_REPENTOGON(_, offset, sprite, pos + Vector(0, 10), unkFloat, player:GetSubPlayer(), isPreCallback, true, player)
 		end
 	end
 
@@ -1809,6 +1818,9 @@ local function InitFunctions()
 									pos = pos + Vector(0, 2)
 								end
 								renderHeartHUDs(player, playerHUDIndex, hudLayout, pos, hud)
+								if player:GetSubPlayer() and hud.Condition(player:GetSubPlayer(), playerHUDIndex, hudLayout, player) then
+									renderHeartHUDs(player:GetSubPlayer(), playerHUDIndex, hudLayout, pos + Vector(0, 10), hud, player)
+								end
 							elseif hudType == HudHelper.HUDType.POCKET then
 								---@cast hud HUDInfo_Pocket
 								if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
