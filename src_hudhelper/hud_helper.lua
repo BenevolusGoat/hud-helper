@@ -628,11 +628,12 @@ local function InitFunctions()
 		return hudPos
 	end
 
+	local bethanyChecks = {
+		PlayerType.PLAYER_BETHANY,
+		PlayerType.PLAYER_BETHANY_B
+	}
+	---@param specificResource "Coins" | "Bombs" | "Key"
 	function HudHelper.GetResourcesOffset(specificResource)
-		local bethanyChecks = {
-			PlayerType.PLAYER_BETHANY,
-			PlayerType.PLAYER_BETHANY_B
-		}
 		local hasBB = HudHelper.Utils.AnyoneIsPlayerType(PlayerType.PLAYER_BLUEBABY_B)
 		local offset = 0
 		local hudLayout = HudHelper.Utils.GetHUDLayout(1)
@@ -2129,16 +2130,6 @@ local function InitFunctions()
 		YPadding = 16,
 		Condition = function(_, _, hudLayout)
 			return hudLayout == HudHelper.P1_MAIN_TWIN
-		end,
-		OnRender = function() end, -- handled by the game
-	}, HudHelper.HUDType.EXTRA)
-	HudHelper.RegisterHUDElement({
-		Name = "P1 Other Twin",
-		Priority = HudHelper.Priority.VANILLA,
-		XPadding = 15,
-		YPadding = 0,
-		Condition = function(_, _, hudLayout)
-			return hudLayout == HudHelper.P1_OTHER_TWIN
 		end,
 		OnRender = function() end, -- handled by the game
 	}, HudHelper.HUDType.EXTRA)
