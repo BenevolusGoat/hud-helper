@@ -28,7 +28,7 @@ local function InitMod()
 
 	---@class HUDInfo_Active: HUDInfo
 	---@field Condition fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, slot: ActiveSlot): boolean @A function that returns true if the HUD element should be drawn.
-	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, slot: ActiveSlot) @Runs for each player, if the condition is true.
+	---@field OnRender fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, position: Vector, alpha: number, scale: number, slot: ActiveSlot, chargebarOffset: Vector) @Runs for each player, if the condition is true.
 
 	---@class HUDInfo_Health: HUDInfo
 	---@field Condition fun(player: EntityPlayer, playerHUDIndex: integer, hudLayout: HUDLayout, mainPlayer: EntityPlayer?): boolean @A function that returns true if the HUD element should be drawn.
@@ -632,7 +632,7 @@ local function InitFunctions()
 		PlayerType.PLAYER_BETHANY,
 		PlayerType.PLAYER_BETHANY_B
 	}
-	---@param specificResource "Coins" | "Bombs" | "Key"
+	---@param specificResource "Coins" | "Bombs" | "Keys"
 	function HudHelper.GetResourcesOffset(specificResource)
 		local hasBB = HudHelper.Utils.AnyoneIsPlayerType(PlayerType.PLAYER_BLUEBABY_B)
 		local offset = 0
@@ -750,6 +750,23 @@ local function InitFunctions()
 					and player:GetPill(0) == 0
 				)
 			)
+	end
+
+	---@param slot ActiveSlot
+	---@param scale number
+	---@param hudLayout HUDLayout
+	function HudHelper.GetActiveChargeBarHUDOffset(slot, scale, hudLayout)
+		local chargebarXOffset = 34
+		if hudLayout ~= HudHelper.HUDLayout.P1_OTHER_TWIN and slot == ActiveSlot.SLOT_SECONDARY then
+			chargebarXOffset = -2
+		elseif hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN then
+			if slot == ActiveSlot.SLOT_SECONDARY then
+				chargebarXOffset = 38
+			else
+				chargebarXOffset = 0
+			end
+		end
+		return Vector(chargebarXOffset * scale, 17 * scale)
 	end
 
 	---Gives the location of the player's active item HUD as a vector
@@ -1487,8 +1504,9 @@ local function InitFunctions()
 			elseif not isItem
 				and hud.Condition(player, playerHUDIndex, hudLayout, slot)
 			then
+				local chargebarOffset = pos + HudHelper.GetActiveChargeBarHUDOffset(slot, scale, hudLayout)
 				---@cast hud HUDInfo_Active
-				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, slot)
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, slot, chargebarOffset)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE][playerHUDIndex] = hud
 			end
 		end
@@ -1500,7 +1518,7 @@ local function InitFunctions()
 	---@param alpha number
 	---@param scale number
 	---@param isPreCallback boolean
-	local function renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, isPreCallback)
+	local function renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, chargebarOffset, isPreCallback)
 		if not player:Exists()
 			or player:GetActiveItem(slot) == CollectibleType.COLLECTIBLE_NULL
 			or HudHelper.ShouldHideHUD()
@@ -1522,7 +1540,7 @@ local function InitFunctions()
 				and hud.Condition(player, playerHUDIndex, hudLayout, slot)
 				and ((not hud.PreRenderCallback and not isPreCallback) or (hud.PreRenderCallback and isPreCallback))
 			then
-				hud.OnRender(player, playerHUDIndex, hudLayout, offset, alpha, scale, slot)
+				hud.OnRender(player, playerHUDIndex, hudLayout, offset, alpha, scale, slot, chargebarOffset)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE][playerHUDIndex] = hud
 			end
 		end
@@ -1901,12 +1919,12 @@ local function InitFunctions()
 		renderHeartHUDs_REPENTOGON(_, offset, sprite, pos, unkFloat, player, false)
 	end
 
-	local function preRenderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale)
-		renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, true)
+	local function preRenderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, chargebarOffset)
+		renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, chargebarOffset, true)
 	end
 
-	local function postRenderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale)
-		renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, false)
+	local function postRenderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, chargebarOffset)
+		renderActiveHUDs_REPENTOGON(_, player, slot, offset, alpha, scale, chargebarOffset, false)
 	end
 
 	local function preRenderHUDs()
