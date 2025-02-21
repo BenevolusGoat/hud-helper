@@ -177,14 +177,14 @@ local function InitMod()
 
 	---@enum HUDIconType
 	HudHelper.IconType = {
-		COINS = 1,
-		BOMBS = 2,
-		KEYS = 3,
-		DIFFICULTY_ICON = 5,
-		NO_ACHIEVEMENT_ICON = 6,
-		DESTINATION_ICON = 7,
-		MISC_ICON = 8,
-		STAT = 9
+		COINS = 1,					--Coins counter
+		BOMBS = 2,					--Bombs counter
+		KEYS = 3,					--Keys counter
+		DIFFICULTY_ICON = 5,		--Hard Mode, Greed, Greedier icons
+		NO_ACHIEVEMENT_ICON = 6,	--Disabled achievements icon
+		DESTINATION_ICON = 7,		--Challenge destination icon
+		MISC_ICON = 8,				--Icon that awkwardly renders to the right of the previous icons
+		STAT = 9					--Bottom of the stats, if the FoundHUD option is enabled
 	}
 
 	---@type table<ModCallbacks, function[]>
