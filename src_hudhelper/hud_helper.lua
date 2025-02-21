@@ -773,12 +773,14 @@ local function InitFunctions()
 	---@param player EntityPlayer
 	---@param playerHUDIndex integer
 	---@param slot ActiveSlot
-	---@return Vector
-	function HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale)
-		local itemSpecificOffset = slot == ActiveSlot.SLOT_PRIMARY and getBookOffset(player) or Vector.Zero
+	---@param separateReturns? boolean @If true, separates the base active slot position and the slot-specific offset (Book of Virtues + item-specific offsets)
+	---@return Vector, Vector?
+	function HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale, separateReturns)
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
-
-		itemSpecificOffset = itemSpecificOffset + HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot), itemSpecificOffset.Y == -4, scale == 0.5) * scale
+		local itemOffset = Vector.Zero
+		local bookOffset = slot == ActiveSlot.SLOT_PRIMARY and getBookOffset(player) or Vector.Zero
+		local itemSpecificOffset = HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot), bookOffset.Y ~= 0, hudLayout == HudHelper.HUDLayout.TWIN_COOP) * scale
+		itemOffset = itemSpecificOffset + bookOffset
 
 		if slot <= ActiveSlot.SLOT_SECONDARY then
 			playerHUDIndex = min(4, playerHUDIndex)
@@ -799,10 +801,19 @@ local function InitFunctions()
 			if hudLayout == HudHelper.HUDLayout.TWIN_COOP then
 				additionalOffset = additionalOffset + Vector(19, 4)
 			end
+			activeOffset = activeOffset + additionalOffset
 
-			return activeOffset + additionalOffset + itemSpecificOffset
+			if separateReturns then
+				return activeOffset, itemOffset
+			else
+				return activeOffset + itemOffset
+			end
 		else
-			return HudHelper.GetPocketHUDOffset(player) + itemSpecificOffset
+			if separateReturns then
+				return HudHelper.GetPocketHUDOffset(player), itemOffset
+			else
+				return HudHelper.GetPocketHUDOffset(player) + itemOffset
+			end
 		end
 	end
 
@@ -1427,7 +1438,6 @@ local function InitFunctions()
 	---@param player EntityPlayer
 	---@param playerHUDIndex integer
 	---@param hudLayout HUDLayout
-	---@param pos Vector
 	---@param hud HUDInfo_Active | HUDInfo_ActiveID
 	local function renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, isItem)
 		if REPENTOGON then return end
@@ -1485,8 +1495,8 @@ local function InitFunctions()
 			if game:GetLevel():GetCurrentRoomDesc().Flags & RoomDescriptor.FLAG_CURSED_MIST == RoomDescriptor.FLAG_CURSED_MIST then
 				alpha = 0.5
 			end
-			pos = HudHelper.GetHUDPosition(cornerHUD) + HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale)
-
+			local activePos, itemPos = HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale, true)
+			local pos = HudHelper.GetHUDPosition(cornerHUD) + activePos
 			if i == 2 then
 				pos = pos + TWIN_COOP_OFFSET
 			end
@@ -1499,14 +1509,18 @@ local function InitFunctions()
 				and (not hud.Condition or hud.Condition(player, playerHUDIndex, hudLayout))
 			then
 				---@cast hud HUDInfo_ActiveID
-				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, itemID, slot)
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos + itemPos, alpha, scale, itemID, slot)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE_ID][playerHUDIndex] = hud
 			elseif not isItem
 				and hud.Condition(player, playerHUDIndex, hudLayout, slot)
 			then
-				local chargebarOffset = pos + HudHelper.GetActiveChargeBarHUDOffset(slot, scale, hudLayout)
+				local bookOffset = slot == ActiveSlot.SLOT_PRIMARY and getBookOffset(player) or Vector.Zero
+				if bookOffset.Y ~= 0 then
+					bookOffset = bookOffset + Vector(0, 1)
+				end
+				local chargebarPos = pos + HudHelper.GetActiveChargeBarHUDOffset(slot, scale, hudLayout) - bookOffset
 				---@cast hud HUDInfo_Active
-				hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale, slot, chargebarOffset)
+				hud.OnRender(player, playerHUDIndex, hudLayout, pos + itemPos, alpha, scale, slot, chargebarPos)
 				HudHelper.LastAppliedHUD[HudHelper.HUDType.ACTIVE][playerHUDIndex] = hud
 			end
 		end
@@ -1533,7 +1547,7 @@ local function InitFunctions()
 		if playerHUDIndex == -1 then return end
 		local hudLayout = HudHelper.Utils.GetHUDLayout(playerHUDIndex)
 
-		offset = offset + HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot), slot == ActiveSlot.SLOT_PRIMARY and (getBookOffset(player).Y == -4), scale == 0.5) * scale
+		offset = offset + HudHelper.GetItemSpecificOffset(player:GetActiveItem(slot), slot == ActiveSlot.SLOT_PRIMARY and (getBookOffset(player).Y ~= 0), hudLayout == HudHelper.HUDLayout.TWIN_COOP) * scale
 
 		for _, hud in ipairs(HUD_ELEMENTS[HudHelper.HUDType.ACTIVE]) do
 			if (not player:IsCoopGhost() or hud.BypassGhostBaby)
