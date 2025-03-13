@@ -632,7 +632,7 @@ local function InitFunctions()
 		PlayerType.PLAYER_BETHANY,
 		PlayerType.PLAYER_BETHANY_B
 	}
-	---@param specificResource "Coins" | "Bombs" | "Keys"
+	---@param specificResource? "Coins" | "Bombs" | "Keys"
 	function HudHelper.GetResourcesOffset(specificResource)
 		local hasBB = HudHelper.Utils.AnyoneIsPlayerType(PlayerType.PLAYER_BLUEBABY_B)
 		local offset = 0
