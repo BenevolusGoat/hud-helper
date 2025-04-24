@@ -3,6 +3,7 @@ local emptyShaderName = "HudHelperEmptyShader"
 
 local VERSION = 1.12 -- (v1.1.2) do not modify
 local game = Game()
+local itemConfig = Isaac.GetItemConfig()
 
 -- debug
 local FORCE_VERSION_UPDATE = false
@@ -737,13 +738,11 @@ local function InitFunctions()
 	---@param itemID CollectibleType
 	---@param slot ActiveSlot
 	function HudHelper.ShouldActiveBeDisplayed(player, itemID, slot)
-		local config = Isaac.GetItemConfig()
-
 		return not HudHelper.ShouldHideHUD()
 			and not player:IsCoopGhost()
 			and itemID ~= CollectibleType.COLLECTIBLE_NULL
 			and player:HasCollectible(itemID, true)
-			and config:GetCollectible(itemID).Type == ItemType.ITEM_ACTIVE
+			and itemConfig:GetCollectible(itemID).Type == ItemType.ITEM_ACTIVE
 			and player:GetActiveItem(slot) == itemID
 			and (slot <= ActiveSlot.SLOT_SECONDARY --Fine to display if you simply have the item
 				or (player:GetCard(0) == 0 --Otherwise, assumed to be in first slot if no cards or pills are there.
@@ -1781,7 +1780,7 @@ local function InitFunctions()
 				local collectiblesHistory = player:GetHistory():GetCollectiblesHistory()
 				for i = #collectiblesHistory, 1, -1 do
 					local historyItem = collectiblesHistory[i]
-					if historyItem:IsTrinket() or Mod.ItemConfig:GetCollectible(historyItem:GetItemID()).Type ~= ItemType.ITEM_ACTIVE then
+					if historyItem:IsTrinket() or itemConfig:GetCollectible(historyItem:GetItemID()).Type ~= ItemType.ITEM_ACTIVE then
 						posIndex = posIndex + 1
 					end
 					if posIndex > maxInventory then return end
