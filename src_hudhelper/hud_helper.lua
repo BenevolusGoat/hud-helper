@@ -1670,7 +1670,7 @@ local function InitFunctions()
 		elseif isPill and player:GetPill(0) == hud.ItemID then
 			hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale)
 			HudHelper.LastAppliedHUD[HudHelper.HUDType.PILL_ID][playerHUDIndex] = hud
-		else
+		elseif not isCard and not isPill then
 			hud.OnRender(player, playerHUDIndex, hudLayout, pos, alpha, scale)
 			HudHelper.LastAppliedHUD[HudHelper.HUDType.POCKET][playerHUDIndex] = hud
 		end
