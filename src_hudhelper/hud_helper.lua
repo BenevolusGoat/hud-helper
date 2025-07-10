@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.13 -- (v1.1.3) do not modify
+local VERSION = 1.14 -- (v1.1.4) do not modify
 local game = Game()
 local itemConfig = Isaac.GetItemConfig()
 
@@ -1631,6 +1631,14 @@ local function InitFunctions()
 		local scale = 1
 		local alpha = 1
 
+		if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
+			pos = HudHelper.GetHUDPosition(4)
+		end
+		if i == 2 then
+			pos = pos + TWIN_COOP_OFFSET
+		end
+		pos = pos + HudHelper.GetPocketHUDOffset(player)
+
 		if hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN
 			or hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN
 			or hudLayout == HudHelper.HUDLayout.TWIN_COOP
@@ -1857,13 +1865,6 @@ local function InitFunctions()
 								end
 							elseif hudType == HudHelper.HUDType.POCKET then
 								---@cast hud HUDInfo_Pocket
-								if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
-									pos = HudHelper.GetHUDPosition(4)
-								end
-								if i == 2 then
-									pos = pos + TWIN_COOP_OFFSET
-								end
-								pos = pos + HudHelper.GetPocketHUDOffset(player)
 								renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
 							elseif hudType == HudHelper.HUDType.TRINKET then
 								---@cast hud HUDInfo_Trinket
