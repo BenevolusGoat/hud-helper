@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.14 -- (v1.1.4) do not modify
+local VERSION = 1.15 -- (v1.1.5) do not modify
 local game = Game()
 local itemConfig = Isaac.GetItemConfig()
 
