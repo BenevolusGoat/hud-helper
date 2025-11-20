@@ -1176,7 +1176,7 @@ local function InitFunctions()
 	local shadowSprite = Sprite()
 	local goldenHUDSprite = Sprite()
 	if REPENTOGON then
-		goldenHUDSprite:SetRenderFlags(AnimRenderFlags.GOLDEN)
+		goldenHUDSprite:SetRenderFlags(AnimRenderFlags.GOLDEN | AnimRenderFlags.IGNORE_GAME_TIME)
 	end
 
 	---For rendering active items or trinkets
