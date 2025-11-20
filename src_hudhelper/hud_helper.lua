@@ -1,5 +1,5 @@
-local Mod = HudHelperExample
-local emptyShaderName = "HudHelperEmptyShader"
+local Mod = TestMod
+local emptyShaderName = "TestHUDEmptyShader"
 
 local VERSION = 1.16 -- (v1.1.6) do not modify
 local game = Game()
@@ -1452,6 +1452,7 @@ local function InitFunctions()
 
 			local scale = 1
 			local alpha = 1
+			local isSecondTwin = HudHelper.HUDLayout.P1_OTHER_TWIN or i == 2
 
 			if hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN
 				or hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN
@@ -1470,16 +1471,17 @@ local function InitFunctions()
 				end
 				local dropTrigger = not game:IsPaused()
 					and player.ControlsEnabled
+					and player.ControlsCooldown == 0
 					and Input.IsActionPressed(ButtonAction.ACTION_DROP, player.ControllerIndex)
 				if Options.JacobEsauControls and Options.JacobEsauControls == 1 then
 					if hudLayout == HudHelper.HUDLayout.TWIN_COOP then
-						alpha = (i == 1) and 1 or 0.25
+						alpha = isSecondTwin and 0.25 or 1
 					else
-						alpha = (i == 1) and 0.25 or 1
+						alpha = isSecondTwin and 1 or 0.25
 					end
 
 					if dropTrigger then
-						alpha = i == 1 and 0.25 or 1
+						alpha = isSecondTwin and 1 or 0.25
 					end
 				elseif not Options.JacobEsauControls or Options.JacobEsauControls == 0 then
 					alpha = slot < ActiveSlot.SLOT_POCKET and 1 or 0.25
@@ -1496,11 +1498,7 @@ local function InitFunctions()
 				alpha = 0.5
 			end
 			local activePos, itemPos = HudHelper.GetActiveHUDOffset(player, playerHUDIndex, slot, scale, true)
-			local pos = HudHelper.GetHUDPosition(cornerHUD) + activePos
-			if i == 2 then
-				pos = pos + TWIN_COOP_OFFSET
-			end
-
+			pos = HudHelper.GetHUDPosition(cornerHUD) + activePos
 			local itemID = player:GetActiveItem(slot)
 
 			if isItem
@@ -1629,12 +1627,10 @@ local function InitFunctions()
 	local function renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, isCard, isPill)
 		local scale = 1
 		local alpha = 1
+		local isSecondTwin = hudLayout == HudHelper.HUDLayout.P1_OTHER_TWIN or i == 2
 
 		if hudLayout == HudHelper.HUDLayout.P1 and not condensedCoopHUD then
 			pos = HudHelper.GetHUDPosition(4)
-		end
-		if i == 2 then
-			pos = pos + TWIN_COOP_OFFSET
 		end
 		pos = pos + HudHelper.GetPocketHUDOffset(player)
 
@@ -1647,11 +1643,12 @@ local function InitFunctions()
 			end
 			local dropTrigger = not game:IsPaused()
 				and player.ControlsEnabled
+				and player.ControlsCooldown == 0
 				and Input.IsActionPressed(ButtonAction.ACTION_DROP, player.ControllerIndex)
 			if Options.JacobEsauControls and Options.JacobEsauControls == 1 then
-				alpha = i == 1 and 1 or 0.25
+				alpha = isSecondTwin and 0.25 or 1
 				if dropTrigger then
-					alpha = i == 1 and 0.25 or 1
+					alpha = isSecondTwin and 1 or 0.25
 				end
 			elseif not Options.JacobEsauControls or Options.JacobEsauControls == 0 then
 				alpha = 0.25
@@ -1680,7 +1677,7 @@ local function InitFunctions()
 	---@param hudLayout HUDLayout
 	---@param pos Vector
 	---@param hud HUDInfo_Trinket | HUDInfo_TrinketID
-	local function renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, isItem)
+	local function renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, isItem)
 		local cornerHUD = min(4, playerHUDIndex)
 		if hudLayout == HudHelper.HUDLayout.P1 or (hudLayout == HudHelper.HUDLayout.P1_MAIN_TWIN and not REPENTANCE_PLUS) then
 			cornerHUD = 3
@@ -1688,9 +1685,6 @@ local function InitFunctions()
 		local scale = 1
 		for slot = 0, 1 do
 			pos = HudHelper.GetHUDPosition(cornerHUD) + HudHelper.GetTrinketHUDOffset(player, slot)
-			if i == 2 then
-				pos = pos + TWIN_COOP_OFFSET
-			end
 			if hudLayout == HudHelper.HUDLayout.COOP
 				or (REPENTANCE_PLUS and hudLayout ~= HudHelper.HUDLayout.P1)
 			then
@@ -1867,7 +1861,7 @@ local function InitFunctions()
 								renderPocketItemHUDs(player, playerHUDIndex, hudLayout, pos, hud, i)
 							elseif hudType == HudHelper.HUDType.TRINKET then
 								---@cast hud HUDInfo_Trinket
-								renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, false)
+								renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, false)
 							elseif hudType == HudHelper.HUDType.EXTRA then
 								pos = pos + HudHelper.GetExtraHUDOffset(playerHUDIndex)
 								---@cast hud HUDInfo_Extra
@@ -1891,7 +1885,7 @@ local function InitFunctions()
 								renderActiveHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, true)
 							elseif hudType == HudHelper.HUDType.TRINKET_ID then
 								---@cast hud HUDInfo_TrinketID
-								renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, i, true)
+								renderTrinketHUDs(player, playerHUDIndex, hudLayout, pos, hud, true)
 							elseif (hudType == HudHelper.HUDType.CARD_ID or hudType == HudHelper.HUDType.PILL_ID)
 								and (not hud.Condition or hud.Condition(player, playerHUDIndex, hudLayout))
 							then
