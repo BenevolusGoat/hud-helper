@@ -199,6 +199,7 @@ local function InitMod()
 		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_PLAYERHUD_RENDER_HEARTS] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_PRE_PLAYERHUD_RENDER_ACTIVE_ITEM] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM] = {}
+		HudHelper.AddedCallbacks[ModCallbacks.MC_HUD_RENDER] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_HUD_RENDER] = {}
 		HudHelper.AddedCallbacks[ModCallbacks.MC_POST_MODS_LOADED] = {}
 	else
@@ -581,8 +582,6 @@ local function InitFunctions()
 	---Gives the location of the player's HUD as a vector, starting from the top left corner.
 	---@param playerHUDIndex integer
 	---@return Vector
-	---@function
-	---@scope Mod.HudHelper
 	function HudHelper.GetHUDPosition(playerHUDIndex)
 		playerHUDIndex = min(4, playerHUDIndex)
 		local hudOffsetOption = Options.HUDOffset
@@ -743,7 +742,7 @@ local function InitFunctions()
 		return not HudHelper.ShouldHideHUD()
 			and not player:IsCoopGhost()
 			and itemID ~= CollectibleType.COLLECTIBLE_NULL
-			and itemConfig:GetCollectible(itemID).Type == ItemType.ITEM_ACTIVE
+			and (itemConfig:GetCollectible(itemID).Type == ItemType.ITEM_ACTIVE or itemID == CollectibleType.COLLECTIBLE_BOOK_OF_VIRTUES)
 			and player:GetActiveItem(slot) == itemID
 			and REPENTOGON or ((slot <= ActiveSlot.SLOT_SECONDARY --Fine to display if you simply have the item
 				or (player:GetCard(0) == 0 --Otherwise, assumed to be in first slot if no cards or pills are there.
@@ -971,7 +970,6 @@ local function InitFunctions()
 	---@param charge number
 	---@param maxCharge number
 	---@param position Vector
-	---@function
 	function HudHelper.RenderChargeBar(HUDSprite, charge, maxCharge, position)
 		if HudHelper.ShouldHideHUD() or not Options.ChargeBars then
 			return
@@ -2079,6 +2077,7 @@ local function InitFunctions()
 
 	-- Register new callbacks
 	if REPENTOGON then
+		AddCallback(ModCallbacks.MC_HUD_RENDER, preRenderHUDs)
 		AddCallback(ModCallbacks.MC_POST_HUD_RENDER, postRenderHUDs)
 		AddCallback(ModCallbacks.MC_PRE_PLAYERHUD_RENDER_ACTIVE_ITEM, preRenderActiveHUDs_REPENTOGON)
 		AddCallback(ModCallbacks.MC_POST_PLAYERHUD_RENDER_ACTIVE_ITEM, postRenderActiveHUDs_REPENTOGON)
@@ -2093,9 +2092,9 @@ local function InitFunctions()
 		end
 		AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
 		AddCallback(ModCallbacks.MC_POST_GAME_STARTED, postModsLoaded)
+		AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, preRenderHUDs)
 	end
 
-	AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, preRenderHUDs)
 	AddCallback(ModCallbacks.MC_POST_RENDER, updateGoldenItemHUD)
 	AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType.COLLECTIBLE_FLIP)
 
