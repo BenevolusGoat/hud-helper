@@ -2092,10 +2092,10 @@ local function InitFunctions()
 		end
 		AddCallback(ModCallbacks.MC_GET_SHADER_PARAMS, getShaderParams)
 		AddCallback(ModCallbacks.MC_POST_GAME_STARTED, postModsLoaded)
+		AddCallback(ModCallbacks.MC_POST_RENDER, updateGoldenItemHUD)
 		AddPriorityCallback(ModCallbacks.MC_POST_RENDER, CallbackPriority.LATE, preRenderHUDs)
 	end
 
-	AddCallback(ModCallbacks.MC_POST_RENDER, updateGoldenItemHUD)
 	AddCallback(ModCallbacks.MC_USE_ITEM, resetHUDPlayersOnLazBBirthrightFlip, CollectibleType.COLLECTIBLE_FLIP)
 
 	--#endregion
