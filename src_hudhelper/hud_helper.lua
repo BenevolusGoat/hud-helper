@@ -744,7 +744,7 @@ local function InitFunctions()
 			and itemID ~= CollectibleType.COLLECTIBLE_NULL
 			and (itemConfig:GetCollectible(itemID).Type == ItemType.ITEM_ACTIVE or itemID == CollectibleType.COLLECTIBLE_BOOK_OF_VIRTUES)
 			and player:GetActiveItem(slot) == itemID
-			and REPENTOGON or ((slot <= ActiveSlot.SLOT_SECONDARY --Fine to display if you simply have the item
+			and (REPENTOGON or (slot <= ActiveSlot.SLOT_SECONDARY --Fine to display if you simply have the item
 				or (player:GetCard(0) == 0 --Otherwise, assumed to be in first slot if no cards or pills are there.
 					and player:GetPill(0) == 0
 				)
