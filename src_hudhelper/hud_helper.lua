@@ -207,11 +207,21 @@ local function InitMod()
 		HudHelper.AddedCallbacks[ModCallbacks.MC_GET_SHADER_PARAMS] = {}
 	end
 
+	---@type table<ModCallbacks, function[]>
+	HudHelper.AddedCallbacks = {} -- for any vanilla callback functions added by this library
 	HudHelper.Callbacks = {}
-
 	---@type table<string, HUDCallback[]>
-	HudHelper.Callbacks.RegisteredCallbacks = game:GetFrameCount() == 0 and CACHED_CALLBACKS or {}
-	HudHelper.AddedCallbacks = game:GetFrameCount() == 0 and CACHED_MOD_CALLBACKS or HudHelper.AddedCallbacks
+	HudHelper.Callbacks.RegisteredCallbacks = {}
+	if game:GetFrameCount() == 0 and CACHED_CALLBACKS then
+		HudHelper.Callbacks.RegisteredCallbacks = CACHED_CALLBACKS
+	end
+
+	-- Unregister previous callbacks
+	for callback, funcs in pairs(CACHED_MOD_CALLBACKS or {}) do
+		for i = 1, #funcs do
+			HudHelper:RemoveCallback(callback, funcs[i])
+		end
+	end
 
 	HudHelper.LoadedPatches = false
 
@@ -1912,13 +1922,6 @@ local function InitFunctions()
 		end
 		if Options.ExtraHUDStyle > 0 then
 			--HudHelper.RenderExtraItemHUDTrinkets(isPreCallback)
-		end
-	end
-
-	-- Unregister previous callbacks
-	for callback, funcs in pairs(HudHelper.AddedCallbacks) do
-		for i = 1, #funcs do
-			HudHelper:RemoveCallback(callback, funcs[i])
 		end
 	end
 
