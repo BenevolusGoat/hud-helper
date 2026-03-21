@@ -998,7 +998,11 @@ local function InitFunctions()
 			end
 			local frame = floor(chargePercent * 100)
 			HUDSprite:SetFrame("Charging", frame)
-		elseif chargePercent == 0 and not HUDSprite:IsPlaying("Disappear") and not HUDSprite:IsFinished("Disappear") then
+		elseif chargePercent == 0
+			and not HUDSprite:IsPlaying("Disappear")
+			and not HUDSprite:IsFinished("Disappear")
+			and (HUDSprite:IsPlaying() or HUDSprite:GetAnimation() == "Charging")
+		then
 			HUDSprite:Play("Disappear", true)
 		end
 
