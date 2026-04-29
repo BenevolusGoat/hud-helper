@@ -1,5 +1,5 @@
-local Mod = TestMod
-local emptyShaderName = "TestHUDEmptyShader"
+local Mod = HudHelperExample
+local emptyShaderName = "HudHelperEmptyShader"
 
 local VERSION = 1.16 -- (v1.1.6) do not modify
 local game = Game()
