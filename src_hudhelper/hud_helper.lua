@@ -1,7 +1,7 @@
 local Mod = HudHelperExample
 local emptyShaderName = "HudHelperEmptyShader"
 
-local VERSION = 1.16 -- (v1.1.6) do not modify
+local VERSION = 1.17 -- (v1.1.7) do not modify
 local game = Game()
 local itemConfig = Isaac.GetItemConfig()
 
@@ -459,10 +459,11 @@ local function InitFunctions()
 		local hudPlayer = HudHelper.HUDPlayers[playerHUDIndex][1]
 		local player = tryGetPlayerFromPtr(hudPlayer)
 		if not player then return HudHelper.HUDLayout.P1 end
+		local isTwinHUD = canAddTwinHUD(player)
 
 		if not REPENTANCE_PLUS then
 			if playerHUDIndex == 1 then
-				if canAddTwinHUD(player) then
+				if isTwinHUD then
 					return HudHelper.HUDLayout.P1_MAIN_TWIN
 				else
 					return HudHelper.HUDLayout.P1
@@ -476,14 +477,10 @@ local function InitFunctions()
 			end
 		else
 			if playerHUDIndex == 1 then
-				if not condensedCoopHUD and not player:GetOtherTwin() then
-					return HudHelper.HUDLayout.P1
-				elseif not condensedCoopHUD and player:GetOtherTwin() then
-					return HudHelper.HUDLayout.P1_MAIN_TWIN
-				elseif HudHelper.HUDPlayers[playerHUDIndex][2] then
-					return HudHelper.HUDLayout.TWIN_COOP
+				if isTwinHUD then
+					return condensedCoopHUD and HudHelper.HUDLayout.TWIN_COOP or HudHelper.HUDLayout.P1_MAIN_TWIN
 				else
-					return HudHelper.HUDLayout.COOP
+					return condensedCoopHUD and HudHelper.HUDLayout.COOP or HudHelper.HUDLayout.P1
 				end
 			else
 				if playerHUDIndex == 5 then
@@ -1198,7 +1195,8 @@ local function InitFunctions()
 	---@param alpha number
 	---@param isGolden? boolean
 	---@param renderShadow? boolean
-	function HudHelper.RenderHUDItem(spritePath, pos, scale, alpha, isGolden, renderShadow)
+	---@param renderOutline? boolean
+	function HudHelper.RenderHUDItem(spritePath, pos, scale, alpha, isGolden, renderShadow, renderOutline)
 		if isGolden and spritePath ~= lastRenderedGoldenHUDSprite then
 			if not goldenHUDSprite:IsLoaded() or not shadowSprite:IsLoaded() then
 				if REPENTOGON then
@@ -1231,11 +1229,20 @@ local function InitFunctions()
 			hudSprite:LoadGraphics()
 			lastRenderedHUDSprite = spritePath
 		end
+		--print(lastRenderedGoldenHUDSprite)
 		if isGolden then
 			if renderShadow then
 				shadowSprite.Color = Color(0, 0, 0, alpha * 0.25)
 				shadowSprite.Scale = Vector(scale, scale)
 				shadowSprite:Render(pos + (Vector(2, 2) * scale))
+			end
+			if renderOutline then
+				shadowSprite.Color = Color(0, 0, 0, alpha, 1, 1, 1)
+				shadowSprite.Scale = Vector(scale, scale)
+				shadowSprite:Render(pos + (Vector(0, 1) * scale))
+				shadowSprite:Render(pos + (Vector(0, -1) * scale))
+				shadowSprite:Render(pos + (Vector(-1, 0) * scale))
+				shadowSprite:Render(pos + (Vector(1, 0) * scale))
 			end
 			goldenHUDSprite.Color = Color(1, 1, 1, alpha)
 			goldenHUDSprite.Scale = Vector(scale, scale)
@@ -1245,6 +1252,14 @@ local function InitFunctions()
 				shadowSprite.Color = Color(0, 0, 0, alpha * 0.25)
 				shadowSprite.Scale = Vector(scale, scale)
 				shadowSprite:Render(pos + (Vector(2, 2) * scale))
+			end
+			if renderOutline then
+				shadowSprite.Color = Color(0, 0, 0, alpha, 1, 1, 1)
+				shadowSprite.Scale = Vector(scale, scale)
+				shadowSprite:Render(pos + (Vector(0, 1) * scale))
+				shadowSprite:Render(pos + (Vector(0, -1) * scale))
+				shadowSprite:Render(pos + (Vector(-1, 0) * scale))
+				shadowSprite:Render(pos + (Vector(1, 0) * scale))
 			end
 			hudSprite.Color = Color(1, 1, 1, alpha)
 			hudSprite.Scale = Vector(scale, scale)
